@@ -1,0 +1,9 @@
+{
+  "components": [
+    {"name": "plex-media-server", "version": "1.41.0", "cpe": "cpe:2.3:a:plex:plex_media_server:*:*:*:*:*:*:*:*"},
+    {"name": "next", "version": "15.0.0", "cpe": "cpe:2.3:a:vercel:next.js:*:*:*:*:*:*:*:*"},
+    {"name": "strapi", "version": "4.25.0", "cpe": "cpe:2.3:a:strapi:strapi:*:*:*:*:*:*:*:*"},
+    {"name": "python", "version": "3.12.5"},
+    {"name": "nginx", "version": "1.27.0"}
+  ]
+}
