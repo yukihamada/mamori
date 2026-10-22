@@ -1,0 +1,11 @@
+{
+  "report_md": "# 守（Mamori）脅威レポート — 2026-10-22\n\n- 取得: 30件 / 要対応: **0件** / 要確認: 0件\n",
+  "share_bundle": {
+    "type": "mamori-intel-bundle",
+    "spec_version": "0.1",
+    "id": "bundle--07dd2e88d916c50edfa800d378e835e1",
+    "created": "2026-10-22T02:09:18.520070+00:00",
+    "org": "enabler",
+    "objects": []
+  }
+}
