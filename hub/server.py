@@ -78,6 +78,20 @@ def anonymize(value):
         return {k: anonymize(v) for k, v in value.items()}
     return value
 
+def _stats() -> dict:
+    obs = _read_obs()
+    intel, last = 0, None
+    if LATEST_FILE.exists():
+        try:
+            b = json.loads(LATEST_FILE.read_text())
+            intel = len(b.get("objects", []))
+            last = b.get("created", "")[:16].replace("T", " ") + " UTC"
+        except Exception:
+            pass
+    return {"participants": len(KEYS), "observations_shared": len(obs),
+            "intel_objects": intel, "last_update": last}
+
+
 def _read_obs() -> list[dict]:
     if not OBS_FILE.exists():
         return []
@@ -93,7 +107,13 @@ def _read_obs() -> list[dict]:
             continue
         if o.get("received_at", 0) >= cutoff:
             out.append(o)
-    return out
+    # dedupe by (type, pattern) keeping the latest
+    seen, dedup = {}, []
+    for o in out:
+        k = (o.get("type"), o.get("pattern"))
+        seen[k] = o
+    dedup = list(seen.values())
+    return dedup
 
 LANDING = """<!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -110,7 +130,7 @@ Mamoriは、最新の攻撃情報・脆弱性情報を自動で集め、自分�
 対策まで下書きするセキュリティエージェントです。ある1社が受けた攻撃の知見が、全員の防御になります。</p>
 
 <div class="card"><h2>いまの共有状況</h2>
-<div id="stats">読み込み中… <noscript>統計は <a href="/api/stats">/api/stats</a> で確認できます（JavaScript不要）。</noscript></div>
+<div id="stats">__STATS_HTML__</div>
 <p style="margin-top:.6rem"><a href="/api/latest">/api/latest</a> — 最新の脅威インテル（TLP:CLEAR・誰でも読めます）<br>
 <a href="/api/stix">/api/stix</a> — STIX 2.1 バンドル（MISP/OpenCTIにインポート可）<br>
 <a href="/api/sample-report">/api/sample-report</a> — 対策下書きレポートの実物</p></div>
@@ -222,7 +242,13 @@ class Handler(BaseHTTPRequestHandler):
         if not _rate_ok(f"get:{self.client_address[0]}", GET_LIMIT):
             return self._json(429, {"error": "rate limit exceeded"})
         if path == "/":
-            self._send(200, LANDING.encode(), "text/html; charset=utf-8")
+            stats = _stats()
+            html = LANDING.replace("__STATS_HTML__",
+                f'<span class="stat"><b>{stats["participants"]}</b> 参加組織</span>'
+                f'<span class="stat"><b>{stats["observations_shared"]}</b> 共有された観測</span>'
+                f'<span class="stat"><b>{stats["intel_objects"]}</b> 公開インテル件数</span>'
+                f'<span class="stat">最終更新 {stats["last_update"] or "—"}</span>')
+            self._send(200, html.encode(), "text/html; charset=utf-8")
         elif path == "/healthz":
             self._json(200, {"ok": True, "ts": time.time()})
         elif path == "/api/latest":
@@ -231,22 +257,7 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._json(404, {"error": "no bundle yet"})
         elif path == "/api/stats":
-            obs = _read_obs()
-            intel = 0
-            last = None
-            if LATEST_FILE.exists():
-                try:
-                    b = json.loads(LATEST_FILE.read_text())
-                    intel = len(b.get("objects", []))
-                    last = b.get("created", "")[:16].replace("T", " ") + " UTC"
-                except Exception:
-                    pass
-            self._json(200, {
-                "participants": len(KEYS),
-                "observations_shared": len(obs),
-                "intel_objects": intel,
-                "last_update": last,
-            })
+            self._json(200, _stats())
         elif path == "/api/observations":
             caller = self._caller()
             if not caller:

@@ -74,7 +74,7 @@ def draft_actions(item: dict) -> list[str]:
         else:
             actions.append(f"自社スタック「{hit}」との関連を確認: 依存バージョンと公開面を棚卸し")
     if item.get("required_action") and item["severity"] == "exploited-in-the-wild":
-        actions.append(f"CISA指定の対応（一般）: {item['required_action'][:200]}")
+        actions.append(f"CISA指定の対応（一般）: {item['required_action']}")
     actions.append(f"一次情報: {item.get('url')}")
     return actions
 

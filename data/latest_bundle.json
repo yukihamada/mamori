@@ -1,8 +1,8 @@
 {
   "type": "mamori-intel-bundle",
-  "spec_version": "0.3",
-  "id": "bundle--1645cc7cfabe1928f28195116c0c09c0",
-  "created": "2026-10-22T02:59:16.142330+00:00",
+  "spec_version": "0.4",
+  "id": "bundle--b50a7cdc5605f9fe7c762977f8812d6d",
+  "created": "2026-10-22T03:32:12.270226+00:00",
   "org": "enabler",
   "tlp": "CLEAR",
   "objects": [
@@ -310,6 +310,7 @@
       "title": "Weekly Report 2026-10-21号",
       "url": "https://www.jpcert.or.jp/wr/2026/wr261021.html",
       "published": "2026-10-21",
+      "due_date": null,
       "match": {
         "status": "not-relevant",
         "hits": []
@@ -323,6 +324,7 @@
       "title": "Weekly Report 2026-10-15号",
       "url": "https://www.jpcert.or.jp/wr/2026/wr261015.html",
       "published": "2026-10-15",
+      "due_date": null,
       "match": {
         "status": "not-relevant",
         "hits": []
@@ -336,6 +338,7 @@
       "title": "Weekly Report 2026-10-07号",
       "url": "https://www.jpcert.or.jp/wr/2026/wr261007.html",
       "published": "2026-10-07",
+      "due_date": null,
       "match": {
         "status": "not-relevant",
         "hits": []
@@ -349,6 +352,7 @@
       "title": "Weekly Report 2026-09-30号",
       "url": "https://www.jpcert.or.jp/wr/2026/wr260930.html",
       "published": "2026-09-30",
+      "due_date": null,
       "match": {
         "status": "not-relevant",
         "hits": []
@@ -362,6 +366,7 @@
       "title": "Weekly Report 2026-09-16号",
       "url": "https://www.jpcert.or.jp/wr/2026/wr260916.html",
       "published": "2026-09-16",
+      "due_date": null,
       "match": {
         "status": "not-relevant",
         "hits": []
@@ -375,6 +380,7 @@
       "title": "Weekly Report 2026-09-09号",
       "url": "https://www.jpcert.or.jp/wr/2026/wr260909.html",
       "published": "2026-09-09",
+      "due_date": null,
       "match": {
         "status": "not-relevant",
         "hits": []
@@ -388,6 +394,7 @@
       "title": "Weekly Report 2026-09-02号",
       "url": "https://www.jpcert.or.jp/wr/2026/wr260902.html",
       "published": "2026-09-02",
+      "due_date": null,
       "match": {
         "status": "not-relevant",
         "hits": []
@@ -401,6 +408,7 @@
       "title": "Weekly Report 2026-08-26号",
       "url": "https://www.jpcert.or.jp/wr/2026/wr260826.html",
       "published": "2026-08-26",
+      "due_date": null,
       "match": {
         "status": "not-relevant",
         "hits": []
@@ -414,6 +422,7 @@
       "title": "Weekly Report 2026-08-19号",
       "url": "https://www.jpcert.or.jp/wr/2026/wr260819.html",
       "published": "2026-08-19",
+      "due_date": null,
       "match": {
         "status": "not-relevant",
         "hits": []
@@ -427,6 +436,7 @@
       "title": "Weekly Report 2026-08-13号",
       "url": "https://www.jpcert.or.jp/wr/2026/wr260813.html",
       "published": "2026-08-13",
+      "due_date": null,
       "match": {
         "status": "not-relevant",
         "hits": []
@@ -440,6 +450,7 @@
       "title": "[ICS/OT] 制御システムインシデントの報告",
       "url": "https://www.jpcert.or.jp/ics/ics-form.html",
       "published": "",
+      "due_date": null,
       "match": {
         "status": "not-relevant",
         "hits": []
@@ -453,6 +464,7 @@
       "title": "[ICS/OT] 制御システムセキュリティカンファレンス",
       "url": "https://www.jpcert.or.jp/ics/ics-conference.html",
       "published": "",
+      "due_date": null,
       "match": {
         "status": "not-relevant",
         "hits": []
@@ -466,6 +478,7 @@
       "title": "[ICS/OT] 標準から学ぶICSセキュリティ",
       "url": "https://www.jpcert.or.jp/ics/information07.html",
       "published": "",
+      "due_date": null,
       "match": {
         "status": "not-relevant",
         "hits": []
@@ -479,6 +492,7 @@
       "title": "[ICS/OT] 「制御系SIRTの機能を備えるための手引き」（CSIRTマテリアル補完資料）",
       "url": "https://www.jpcert.or.jp/ics/sirt-for-ics_guide.html",
       "published": "",
+      "due_date": null,
       "match": {
         "status": "not-relevant",
         "hits": []
@@ -492,6 +506,7 @@
       "title": "[ICS/OT] 工場における産業用IoT導入のためのセキュリティ ファーストステップ",
       "url": "https://www.jpcert.or.jp/ics/information06.html",
       "published": "",
+      "due_date": null,
       "match": {
         "status": "not-relevant",
         "hits": []
@@ -505,6 +520,7 @@
       "title": "[ICS/OT] 産業制御システムを対象としたSIRT（制御系SIRT）の実態に関する調査報告書 - 一般製造業 -",
       "url": "https://www.jpcert.or.jp/ics/ics-sirt-survey.html",
       "published": "",
+      "due_date": null,
       "match": {
         "status": "not-relevant",
         "hits": []
@@ -518,6 +534,7 @@
       "title": "[ICS/OT] 日本版SSAT(SCADA Self Assessment Tool)",
       "url": "https://www.jpcert.or.jp/ics/ssat.html",
       "published": "",
+      "due_date": null,
       "match": {
         "status": "not-relevant",
         "hits": []
@@ -531,6 +548,7 @@
       "title": "[ICS/OT] J-CLICS STEP1／STEP2（ICSセキュリティ自己評価ツール）",
       "url": "https://www.jpcert.or.jp/ics/jclics.html",
       "published": "",
+      "due_date": null,
       "match": {
         "status": "not-relevant",
         "hits": []
@@ -544,6 +562,7 @@
       "title": "[ICS/OT] J-CLICS 攻撃経路対策編（ICSセキュリティ自己評価ツール）",
       "url": "https://www.jpcert.or.jp/ics/jclics-attack-path-countermeasures.html",
       "published": "",
+      "due_date": null,
       "match": {
         "status": "not-relevant",
         "hits": []
