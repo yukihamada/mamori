@@ -5,9 +5,9 @@
 Mamoriは、最新の攻撃情報・脆弱性情報を自動で集め、自分の環境への適用範囲を照合し、対策の下書きまで出すセキュリティエージェントです。ある1社・1人が受けた攻撃の知見（IoC）をTLP管理つきで共有し、全員の防御に変える「集団免疫」を目指します。
 
 - 製品ページ: https://teai.io/mamori
-- ハブ: https://mamori-hub.fly.dev/
-- Live Intel（認証不要・TLP:CLEAR）: https://mamori-hub.fly.dev/api/latest
-- 公開カウンタ: https://mamori-hub.fly.dev/api/stats
+- ハブ: https://mamori.teai.io/
+- Live Intel（認証不要・TLP:CLEAR）: https://mamori.teai.io/api/latest
+- 公開カウンタ: https://mamori.teai.io/api/stats
 
 ## できること
 
@@ -26,7 +26,7 @@ Mamoriは、最新の攻撃情報・脆弱性情報を自動で集め、自分�
 
 ### 脅威レポートを受け取るだけ（キー不要）
 ```bash
-curl -s https://mamori-hub.fly.dev/api/latest
+curl -s https://mamori.teai.io/api/latest
 ```
 
 ### 自分のスタックと照合する（ローカル）
@@ -61,7 +61,7 @@ MAMORI_KEYS_JSON='{"key-alpha-001":{"org":"your-org","tlp_max":"AMBER"}}' \
 観測の投稿例：
 
 ```bash
-curl -X POST https://mamori-hub.fly.dev/api/observations \
+curl -X POST https://mamori.teai.io/api/observations \
   -H "X-Mamori-Key: <組織専用キー>" -H "Content-Type: application/json" \
   -d '{"type":"attack-observation","tlp":"GREEN",
        "pattern":"wp-login.php brute force","count":412}'
