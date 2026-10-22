@@ -1,6 +1,6 @@
 {
-  "fetched_at": "2026-10-22T02:09:18.472387+00:00",
-  "count": 30,
+  "fetched_at": "2026-10-22T02:59:10.837363+00:00",
+  "count": 39,
   "items": [
     {
       "id": "CVE-2026-106931",
@@ -32,8 +32,10 @@
       "due_date": "2026-10-23",
       "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines.",
       "match": {
-        "status": "not-relevant",
-        "hits": []
+        "status": "relevant",
+        "hits": [
+          "plex"
+        ]
       }
     },
     {
@@ -49,8 +51,10 @@
       "due_date": "2026-11-03",
       "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines.",
       "match": {
-        "status": "not-relevant",
-        "hits": []
+        "status": "relevant",
+        "hits": [
+          "plex"
+        ]
       }
     },
     {
@@ -66,8 +70,10 @@
       "due_date": "2026-10-23",
       "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines.",
       "match": {
-        "status": "not-relevant",
-        "hits": []
+        "status": "relevant",
+        "hits": [
+          "plex"
+        ]
       }
     },
     {
@@ -83,8 +89,10 @@
       "due_date": "2026-11-03",
       "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines.",
       "match": {
-        "status": "not-relevant",
-        "hits": []
+        "status": "relevant",
+        "hits": [
+          "plex"
+        ]
       }
     },
     {
@@ -151,8 +159,10 @@
       "due_date": "2026-10-18",
       "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines.",
       "match": {
-        "status": "not-relevant",
-        "hits": []
+        "status": "relevant",
+        "hits": [
+          "atlassian"
+        ]
       }
     },
     {
@@ -287,8 +297,10 @@
       "due_date": "2026-10-11",
       "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines.",
       "match": {
-        "status": "not-relevant",
-        "hits": []
+        "status": "relevant",
+        "hits": [
+          "apache"
+        ]
       }
     },
     {
@@ -304,8 +316,10 @@
       "due_date": "2026-10-11",
       "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines.",
       "match": {
-        "status": "not-relevant",
-        "hits": []
+        "status": "relevant",
+        "hits": [
+          "strapi"
+        ]
       }
     },
     {
@@ -321,8 +335,10 @@
       "due_date": "2026-10-11",
       "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines.",
       "match": {
-        "status": "not-relevant",
-        "hits": []
+        "status": "relevant",
+        "hits": [
+          "onlyoffice"
+        ]
       }
     },
     {
@@ -471,12 +487,129 @@
         "status": "not-relevant",
         "hits": []
       }
+    },
+    {
+      "id": "jpcert-ics-ics-form",
+      "title": "[ICS/OT] 制御システムインシデントの報告",
+      "url": "https://www.jpcert.or.jp/ics/ics-form.html",
+      "published": "",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "products": [],
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "id": "jpcert-ics-ics-conference",
+      "title": "[ICS/OT] 制御システムセキュリティカンファレンス",
+      "url": "https://www.jpcert.or.jp/ics/ics-conference.html",
+      "published": "",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "products": [],
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "id": "jpcert-ics-information07",
+      "title": "[ICS/OT] 標準から学ぶICSセキュリティ",
+      "url": "https://www.jpcert.or.jp/ics/information07.html",
+      "published": "",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "products": [],
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "id": "jpcert-ics-sirt-for-ics_guide",
+      "title": "[ICS/OT] 「制御系SIRTの機能を備えるための手引き」（CSIRTマテリアル補完資料）",
+      "url": "https://www.jpcert.or.jp/ics/sirt-for-ics_guide.html",
+      "published": "",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "products": [],
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "id": "jpcert-ics-information06",
+      "title": "[ICS/OT] 工場における産業用IoT導入のためのセキュリティ ファーストステップ",
+      "url": "https://www.jpcert.or.jp/ics/information06.html",
+      "published": "",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "products": [],
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "id": "jpcert-ics-ics-sirt-survey",
+      "title": "[ICS/OT] 産業制御システムを対象としたSIRT（制御系SIRT）の実態に関する調査報告書 - 一般製造業 -",
+      "url": "https://www.jpcert.or.jp/ics/ics-sirt-survey.html",
+      "published": "",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "products": [],
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "id": "jpcert-ics-ssat",
+      "title": "[ICS/OT] 日本版SSAT(SCADA Self Assessment Tool)",
+      "url": "https://www.jpcert.or.jp/ics/ssat.html",
+      "published": "",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "products": [],
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "id": "jpcert-ics-jclics",
+      "title": "[ICS/OT] J-CLICS STEP1／STEP2（ICSセキュリティ自己評価ツール）",
+      "url": "https://www.jpcert.or.jp/ics/jclics.html",
+      "published": "",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "products": [],
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "id": "jpcert-ics-jclics-attack-path-countermeasures",
+      "title": "[ICS/OT] J-CLICS 攻撃経路対策編（ICSセキュリティ自己評価ツール）",
+      "url": "https://www.jpcert.or.jp/ics/jclics-attack-path-countermeasures.html",
+      "published": "",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "products": [],
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
     }
   ],
   "errors": [],
   "summary": {
-    "total": 30,
-    "relevant": 0,
+    "total": 39,
+    "relevant": 8,
     "maybe": 0
   }
 }

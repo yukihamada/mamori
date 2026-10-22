@@ -73,10 +73,47 @@ def fetch_jpcert(limit: int = 10) -> list[dict]:
     return items
 
 
+ICS_URL = "https://www.jpcert.or.jp/ics/"
+
+def fetch_jpcert_ics(limit: int = 10) -> list[dict]:
+    """JPCERT/CC ICS (制御システム) 情報ページ — OT/製造業向け。
+    個別アドバイザリの一覧が取れない場合は、ICSポータル自体を1件の
+    ウォッチ項目として返す（製造業の参加者に導線を示すため）。"""
+    html = _get(ICS_URL).decode("utf-8", "replace")
+    items = []
+    for m in re.finditer(r'href="(/ics/[^"]+\.html)"[^>]*>(.*?)</a>', html):
+        path, title = m.groups()
+        title = re.sub(r"<[^>]+>", "", title).strip()
+        if not title or len(title) < 6:
+            continue
+        items.append({
+            "id": "jpcert-ics-" + path.rsplit("/", 1)[-1].replace(".html", ""),
+            "title": "[ICS/OT] " + title,
+            "url": f"https://www.jpcert.or.jp{path}",
+            "published": "",
+            "source": "jpcert_ics",
+            "severity": "info",
+            "products": [],
+        })
+        if len(items) >= limit:
+            break
+    if not items:
+        items.append({
+            "id": "jpcert-ics-portal",
+            "title": "[ICS/OT] JPCERT/CC 制御システムセキュリティポータル",
+            "url": ICS_URL,
+            "published": "",
+            "source": "jpcert_ics",
+            "severity": "info",
+            "products": [],
+        })
+    return items
+
+
 def main() -> int:
     items = []
     errors = []
-    for name, fn in (("cisa_kev", fetch_kev), ("jpcert", fetch_jpcert)):
+    for name, fn in (("cisa_kev", fetch_kev), ("jpcert", fetch_jpcert), ("jpcert_ics", fetch_jpcert_ics)):
         try:
             items.extend(fn())
         except Exception as e:  # noqa: BLE001

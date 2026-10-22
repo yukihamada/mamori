@@ -1,19 +1,30 @@
 #!/usr/bin/env python3
-"""Mamori hub — tiny FastAPI-free HTTP service (stdlib only).
+"""Mamori hub v0.2 — mutual-defense sharing hub (stdlib only).
+
+Changes from v0.1:
+  - Per-participant keys (MAMORI_KEYS_JSON: {"<key>": {"org": "...", "tlp_max": "AMBER"}})
+    Falls back to single MAMORI_SHARE_KEY for backward compatibility.
+  - Submitter-side + hub-side anonymization: hub masks IPv4 last octet,
+    strips email-like strings, rounds timestamps to the hour.
+  - TLP labels on observations (CLEAR/GREEN/AMBER). GET returns only
+    observations at or below the caller's tlp_max.
+  - Rate limiting: 30 POST/hour per key, 120 GET/hour per IP.
+  - Public stats endpoint (/api/stats) — counts only, no content.
+  - Retention: observations older than 90 days are dropped on read.
 
 Endpoints:
-  GET  /                 -> landing page (what is Mamori / how to join)
-  GET  /api/latest       -> latest intel bundle (public, redacted)
-  POST /api/observations -> partners submit attack observations (shared key)
-  GET  /api/observations -> list shared observations (shared key via ?key= or header)
-  GET  /healthz          -> ok
-
-Storage: JSONL file at DATA_DIR/observations.jsonl
+  GET  /                  -> landing (what/why/how + live stats)
+  GET  /api/latest        -> latest public intel bundle (TLP:CLEAR)
+  GET  /api/stats         -> public counters (participants, observations)
+  POST /api/observations  -> submit observation (participant key)
+  GET  /api/observations  -> read shared observations (participant key)
+  GET  /healthz           -> ok
 """
 from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -23,46 +34,118 @@ DATA_DIR = Path(os.environ.get("MAMORI_DATA", "./data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 OBS_FILE = DATA_DIR / "observations.jsonl"
 LATEST_FILE = DATA_DIR / "latest_bundle.json"
-SHARE_KEY = os.environ.get("MAMORI_SHARE_KEY", "")
+RETENTION_SEC = 90 * 86400
+POST_LIMIT = 30   # per key per hour
+GET_LIMIT = 120   # per IP per hour
 
-LANDING = """<!doctype html><html lang="ja"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>守 Mamori — セキュリティの民主化</title>
-<style>body{font-family:system-ui,sans-serif;max-width:720px;margin:3rem auto;padding:0 1rem;line-height:1.7;color:#1a1a1a}
-h1{font-size:2rem}code{background:#f2f2f2;padding:.1em .4em;border-radius:4px}
-.card{border:1px solid #e5e5e5;border-radius:12px;padding:1.2rem;margin:1rem 0}
-a{color:#0b5fff}</style></head><body>
-<h1>🛡 守（まもり）Mamori</h1>
-<p><strong>みんなでレポートして、みんなで守る。</strong><br>
-Mamoriは、最新の攻撃情報・脆弱性情報を自動で集め、自分の環境に関係あるか照合し、
-対策まで下書きするセキュリティエージェントです。ある1社が受けた攻撃の知見が、
-全員の防御になります。</p>
-<div class="card"><h2>いま検知している脅威</h2>
-<p><a href="/api/latest">/api/latest</a> — 最新の脅威インテルバンドル（JSON・誰でも読めます）</p></div>
-<div class="card"><h2>参加するには</h2>
-<ol><li>攻撃の観測（怪しいIP・ペイロード・手法）を <code>POST /api/observations</code> に共有キーで投稿</li>
-<li>全員の観測が <code>GET /api/observations</code> で共有されます</li>
-<li>テスト参加・共有キーの発行は運営までご連絡ください</li></ol></div>
-<p style="color:#888;font-size:.85rem">Mamori v0.1 — an Enabler project</p>
-</body></html>"""
+# --- participant keys -------------------------------------------------------
+def _load_keys() -> dict:
+    raw = os.environ.get("MAMORI_KEYS_JSON", "")
+    if raw:
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            pass
+    single = os.environ.get("MAMORI_SHARE_KEY", "")
+    return {single: {"org": "default", "tlp_max": "AMBER"}} if single else {}
 
+KEYS = _load_keys()
+TLP_ORDER = {"CLEAR": 0, "GREEN": 1, "AMBER": 2, "RED": 3}
+
+_rate: dict[str, list[float]] = {}
+
+def _rate_ok(bucket: str, limit: int) -> bool:
+    now = time.time()
+    hits = [t for t in _rate.get(bucket, []) if now - t < 3600]
+    _rate[bucket] = hits
+    if len(hits) >= limit:
+        return False
+    hits.append(now)
+    return True
+
+# --- anonymization ----------------------------------------------------------
+EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+IPV4_RE = re.compile(r"\b(\d{1,3}\.\d{1,3}\.\d{1,3})\.\d{1,3}\b")
+
+def anonymize(value):
+    """Recursively mask emails and IPv4 last octets in strings."""
+    if isinstance(value, str):
+        value = EMAIL_RE.sub("[email-masked]", value)
+        return IPV4_RE.sub(r"\1.0/24", value)
+    if isinstance(value, list):
+        return [anonymize(v) for v in value]
+    if isinstance(value, dict):
+        return {k: anonymize(v) for k, v in value.items()}
+    return value
 
 def _read_obs() -> list[dict]:
     if not OBS_FILE.exists():
         return []
+    cutoff = time.time() - RETENTION_SEC
     out = []
     for line in OBS_FILE.read_text().splitlines():
         line = line.strip()
-        if line:
-            try:
-                out.append(json.loads(line))
-            except json.JSONDecodeError:
-                pass
+        if not line:
+            continue
+        try:
+            o = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if o.get("received_at", 0) >= cutoff:
+            out.append(o)
     return out
+
+LANDING = """<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>守 Mamori — セキュリティの民主化</title>
+<style>body{font-family:system-ui,sans-serif;max-width:760px;margin:3rem auto;padding:0 1rem;line-height:1.75;color:#1a1a1a}
+h1{font-size:2rem}h2{font-size:1.2rem;margin-top:2rem}code{background:#f2f2f2;padding:.1em .4em;border-radius:4px}
+.card{border:1px solid #e5e5e5;border-radius:12px;padding:1.2rem;margin:1rem 0}
+.stat{display:inline-block;background:#f6f9f7;border:1px solid #dcebe2;border-radius:10px;padding:.6rem 1rem;margin:.2rem .4rem .2rem 0;font-size:.95rem}
+.stat b{font-size:1.2rem;color:#0b7a4b}
+a{color:#0b5fff}small{color:#888}</style></head><body>
+<h1>🛡 守（まもり）Mamori</h1>
+<p><strong>みんなでレポートして、みんなで守る。</strong><br>
+Mamoriは、最新の攻撃情報・脆弱性情報を自動で集め、自分の環境に関係あるか照合し、
+対策まで下書きするセキュリティエージェントです。ある1社が受けた攻撃の知見が、全員の防御になります。</p>
+
+<div class="card"><h2>いまの共有状況</h2>
+<div id="stats">読み込み中… <noscript>統計は <a href="/api/stats">/api/stats</a> で確認できます（JavaScript不要）。</noscript></div>
+<p style="margin-top:.6rem"><a href="/api/latest">/api/latest</a> — 最新の脅威インテル（TLP:CLEAR・誰でも読めます）</p></div>
+
+<div class="card"><h2>参加すると何が起きる？</h2>
+<ol>
+<li>発行された<strong>参加者専用キー</strong>で、攻撃の観測（怪しいIP・ペイロード・手法）を <code>POST /api/observations</code> に投稿</li>
+<li>ハブ側でも自動匿名化（IP最終オクテット掩蔽・メールアドレス除去・時刻丸め）</li>
+<li>TLPラベル（CLEAR/GREEN/AMBER）で共有範囲を自分で制御</li>
+<li>観測は90日で自動削除。削除依頼は随時受付</li>
+</ol></div>
+
+<div class="card"><h2>投稿者の保護</h2>
+<ul>
+<li>組織名は公開されません（統計は件数のみ）</li>
+<li>IPアドレスは /24 に丸めて保存</li>
+<li>メールアドレスらしき文字列は自動で除去</li>
+<li>AMBER指定の観測は参加者のみが閲覧</li>
+</ul>
+<p><small>それでも識別可能な情報（自社ドメイン等）は投稿前に除いてください。</small></p></div>
+
+<p>テスト参加・専用キーの発行: <a href="https://teai.io/mamori">teai.io/mamori</a></p>
+<p><small>Mamori v0.2 — an Enabler project / 観測データは90日で自動削除されます</small></p>
+<script>
+fetch('/api/stats').then(r=>r.json()).then(s=>{
+  document.getElementById('stats').innerHTML =
+    '<span class="stat"><b>'+s.participants+'</b> 参加組織</span>'+
+    '<span class="stat"><b>'+s.observations_shared+'</b> 共有された観測</span>'+
+    '<span class="stat"><b>'+s.intel_objects+'</b> 公開インテル件数</span>'+
+    '<span class="stat">最終更新 '+ (s.last_update||'—') +'</span>';
+}).catch(()=>{document.getElementById('stats').textContent='統計を取得できませんでした';});
+</script>
+</body></html>"""
 
 
 class Handler(BaseHTTPRequestHandler):
-    def _send(self, code: int, body: bytes, ctype: str = "application/json"):
+    def _send(self, code, body, ctype="application/json"):
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -70,18 +153,18 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _json(self, code: int, obj):
+    def _json(self, code, obj):
         self._send(code, json.dumps(obj, ensure_ascii=False).encode())
 
-    def _authorized(self) -> bool:
-        if not SHARE_KEY:
-            return False
+    def _caller(self) -> dict | None:
         q = parse_qs(urlparse(self.path).query)
-        return (self.headers.get("X-Mamori-Key") == SHARE_KEY
-                or q.get("key", [None])[0] == SHARE_KEY)
+        key = self.headers.get("X-Mamori-Key") or q.get("key", [None])[0]
+        return KEYS.get(key) if key else None
 
     def do_GET(self):
         path = urlparse(self.path).path
+        if not _rate_ok(f"get:{self.client_address[0]}", GET_LIMIT):
+            return self._json(429, {"error": "rate limit exceeded"})
         if path == "/":
             self._send(200, LANDING.encode(), "text/html; charset=utf-8")
         elif path == "/healthz":
@@ -91,10 +174,40 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(200, LATEST_FILE.read_bytes())
             else:
                 self._json(404, {"error": "no bundle yet"})
+        elif path == "/api/stats":
+            obs = _read_obs()
+            intel = 0
+            last = None
+            if LATEST_FILE.exists():
+                try:
+                    b = json.loads(LATEST_FILE.read_text())
+                    intel = len(b.get("objects", []))
+                    last = b.get("created", "")[:16].replace("T", " ") + " UTC"
+                except Exception:
+                    pass
+            self._json(200, {
+                "participants": len(KEYS),
+                "observations_shared": len(obs),
+                "intel_objects": intel,
+                "last_update": last,
+            })
         elif path == "/api/observations":
-            if not self._authorized():
-                return self._json(403, {"error": "share key required"})
-            self._json(200, {"count": len(_read_obs()), "observations": _read_obs()[-200:]})
+            caller = self._caller()
+            if not caller:
+                # No key: TLP:CLEAR observations are public (read-only).
+                visible = [o for o in _read_obs() if o.get("tlp") == "CLEAR"]
+                return self._json(200, {"count": len(visible), "tlp": "CLEAR",
+                                        "observations": visible[-200:]})
+            max_tlp = TLP_ORDER.get(caller.get("tlp_max", "AMBER"), 2)
+            visible = [o for o in _read_obs()
+                       if TLP_ORDER.get(o.get("tlp", "GREEN"), 1) <= max_tlp]
+            self._json(200, {"count": len(visible), "observations": visible[-200:]})
+        elif path == "/api/sample-report":
+            reports = sorted(DATA_DIR.glob("reports/report-*.md"))
+            if reports:
+                self._send(200, reports[-1].read_bytes(), "text/markdown; charset=utf-8")
+            else:
+                self._json(404, {"error": "no report yet"})
         else:
             self._json(404, {"error": "not found"})
 
@@ -102,8 +215,11 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path != "/api/observations":
             return self._json(404, {"error": "not found"})
-        if not self._authorized():
-            return self._json(403, {"error": "share key required"})
+        caller = self._caller()
+        if not caller:
+            return self._json(403, {"error": "participant key required"})
+        if not _rate_ok(f"post:{id(caller)}", POST_LIMIT):
+            return self._json(429, {"error": "rate limit exceeded (30/hour)"})
         try:
             length = min(int(self.headers.get("Content-Length", 0)), 64_000)
             body = json.loads(self.rfile.read(length) or b"{}")
@@ -111,19 +227,26 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(400, {"error": "invalid json"})
         if not isinstance(body, dict) or not body.get("type"):
             return self._json(400, {"error": "observation must be an object with 'type'"})
-        body["received_at"] = time.time()
-        body["remote"] = self.client_address[0]
+        tlp = str(body.get("tlp", "GREEN")).upper()
+        if tlp not in TLP_ORDER or tlp == "RED":
+            tlp = "GREEN"  # RED (do not share) is rejected into GREEN-less: refuse instead
+            if str(body.get("tlp", "")).upper() == "RED":
+                return self._json(400, {"error": "TLP:RED must not be shared; do not submit"})
+        body = anonymize(body)
+        body["tlp"] = tlp
+        body["org_hash"] = format(abs(hash(caller.get("org", "default"))) % 10**8, "08d")
+        body["received_at"] = round(time.time() / 3600) * 3600  # hour-rounding
         with OBS_FILE.open("a") as f:
             f.write(json.dumps(body, ensure_ascii=False) + "\n")
-        self._json(201, {"ok": True})
+        self._json(201, {"ok": True, "tlp": tlp})
 
-    def log_message(self, *a):  # quiet
+    def log_message(self, *a):
         pass
 
 
 def main():
     port = int(os.environ.get("PORT", "8080"))
-    print(f"mamori hub listening on :{port}")
+    print(f"mamori hub v0.2 listening on :{port} (participants: {len(KEYS)})")
     HTTPServer(("0.0.0.0", port), Handler).serve_forever()
 
 

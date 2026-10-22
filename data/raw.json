@@ -1,6 +1,6 @@
 {
-  "fetched_at": "2026-10-22T02:09:18.472387+00:00",
-  "count": 30,
+  "fetched_at": "2026-10-22T02:59:10.837363+00:00",
+  "count": 39,
   "items": [
     {
       "id": "CVE-2026-106931",
@@ -349,6 +349,87 @@
       "url": "https://www.jpcert.or.jp/wr/2026/wr260813.html",
       "published": "2026-08-13",
       "source": "jpcert",
+      "severity": "info",
+      "products": []
+    },
+    {
+      "id": "jpcert-ics-ics-form",
+      "title": "[ICS/OT] 制御システムインシデントの報告",
+      "url": "https://www.jpcert.or.jp/ics/ics-form.html",
+      "published": "",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "products": []
+    },
+    {
+      "id": "jpcert-ics-ics-conference",
+      "title": "[ICS/OT] 制御システムセキュリティカンファレンス",
+      "url": "https://www.jpcert.or.jp/ics/ics-conference.html",
+      "published": "",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "products": []
+    },
+    {
+      "id": "jpcert-ics-information07",
+      "title": "[ICS/OT] 標準から学ぶICSセキュリティ",
+      "url": "https://www.jpcert.or.jp/ics/information07.html",
+      "published": "",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "products": []
+    },
+    {
+      "id": "jpcert-ics-sirt-for-ics_guide",
+      "title": "[ICS/OT] 「制御系SIRTの機能を備えるための手引き」（CSIRTマテリアル補完資料）",
+      "url": "https://www.jpcert.or.jp/ics/sirt-for-ics_guide.html",
+      "published": "",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "products": []
+    },
+    {
+      "id": "jpcert-ics-information06",
+      "title": "[ICS/OT] 工場における産業用IoT導入のためのセキュリティ ファーストステップ",
+      "url": "https://www.jpcert.or.jp/ics/information06.html",
+      "published": "",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "products": []
+    },
+    {
+      "id": "jpcert-ics-ics-sirt-survey",
+      "title": "[ICS/OT] 産業制御システムを対象としたSIRT（制御系SIRT）の実態に関する調査報告書 - 一般製造業 -",
+      "url": "https://www.jpcert.or.jp/ics/ics-sirt-survey.html",
+      "published": "",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "products": []
+    },
+    {
+      "id": "jpcert-ics-ssat",
+      "title": "[ICS/OT] 日本版SSAT(SCADA Self Assessment Tool)",
+      "url": "https://www.jpcert.or.jp/ics/ssat.html",
+      "published": "",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "products": []
+    },
+    {
+      "id": "jpcert-ics-jclics",
+      "title": "[ICS/OT] J-CLICS STEP1／STEP2（ICSセキュリティ自己評価ツール）",
+      "url": "https://www.jpcert.or.jp/ics/jclics.html",
+      "published": "",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "products": []
+    },
+    {
+      "id": "jpcert-ics-jclics-attack-path-countermeasures",
+      "title": "[ICS/OT] J-CLICS 攻撃経路対策編（ICSセキュリティ自己評価ツール）",
+      "url": "https://www.jpcert.or.jp/ics/jclics-attack-path-countermeasures.html",
+      "published": "",
+      "source": "jpcert_ics",
       "severity": "info",
       "products": []
     }

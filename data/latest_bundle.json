@@ -1,8 +1,553 @@
 {
   "type": "mamori-intel-bundle",
-  "spec_version": "0.1",
-  "id": "bundle--07dd2e88d916c50edfa800d378e835e1",
-  "created": "2026-10-22T02:09:18.520070+00:00",
+  "spec_version": "0.3",
+  "id": "bundle--1645cc7cfabe1928f28195116c0c09c0",
+  "created": "2026-10-22T02:59:16.142330+00:00",
   "org": "enabler",
-  "objects": []
+  "tlp": "CLEAR",
+  "objects": [
+    {
+      "type": "advisory",
+      "id": "CVE-2026-106931",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "title": "EG Secure Solutions SiteGuard Server Edition: EG Secure Solutions SiteGuard Server Edition OS Command Injection Vulnerability",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-106931",
+      "published": "2026-10-20",
+      "due_date": "2026-10-23",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "CVE-2026-96656",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "title": "Plex Media Server: Plex Media Server External Control of File Name or Path Vulnerability",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-96656",
+      "published": "2026-10-20",
+      "due_date": "2026-10-23",
+      "match": {
+        "status": "relevant",
+        "hits": [
+          "plex"
+        ]
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "CVE-2026-96655",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "title": "Plex Media Server: Plex Media Server Server-Side Request Forgery (SSRF) Vulnerability",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-96655",
+      "published": "2026-10-20",
+      "due_date": "2026-11-03",
+      "match": {
+        "status": "relevant",
+        "hits": [
+          "plex"
+        ]
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "CVE-2026-96654",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "title": "Plex Media Server: Plex Media Server Improper Neutralization of Encoded URI Schemes in a Web Page Vulnerability",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-96654",
+      "published": "2026-10-20",
+      "due_date": "2026-10-23",
+      "match": {
+        "status": "relevant",
+        "hits": [
+          "plex"
+        ]
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "CVE-2026-96652",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "title": "Plex Media Server: Plex Media Server Server-Side Request Forgery (SSRF) Vulnerability",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-96652",
+      "published": "2026-10-20",
+      "due_date": "2026-11-03",
+      "match": {
+        "status": "relevant",
+        "hits": [
+          "plex"
+        ]
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "CVE-2026-110936",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "title": "Siemens Software Center: Siemens Software Center Uncontrolled Search Path Element Vulnerability",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-110936",
+      "published": "2026-10-20",
+      "due_date": "2026-11-03",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "CVE-2026-102764",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "title": "BeyondTrust Remote Support: BeyondTrust Remote Support Authentication Bypass by Spoofing Vulnerability",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-102764",
+      "published": "2026-10-16",
+      "due_date": "2026-10-19",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "CVE-2025-61624",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "title": "Fortinet Multiple Products: Fortinet Multiple Products Path Traversal Vulnerability",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-61624",
+      "published": "2026-10-16",
+      "due_date": "2026-10-19",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "CVE-2026-21589",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "title": "Atlassian Multiple Products: Atlassian Multiple Products Files or Directories Accessible to External Parties Vulnerability",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-21589",
+      "published": "2026-10-15",
+      "due_date": "2026-10-18",
+      "match": {
+        "status": "relevant",
+        "hits": [
+          "atlassian"
+        ]
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "CVE-2026-105134",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "title": "Ahsay AhsayCBS: Ahsay AhsayCBS Command Injection Vulnerability",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-105134",
+      "published": "2026-10-14",
+      "due_date": "2026-10-17",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "CVE-2026-76519",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "title": "Cisco Secure Email Gateway: Cisco Secure Email Gateway Relative Path Traversal Vulnerability",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-76519",
+      "published": "2026-10-14",
+      "due_date": "2026-10-17",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "CVE-2026-105133",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "title": "Ahsay AhsayCBS: Ahsay AhsayCBS Improper Authentication Vulnerability",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-105133",
+      "published": "2026-10-14",
+      "due_date": "2026-10-17",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "CVE-2026-0322",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "title": "Palo Alto Networks PAN-OS: Palo Alto Networks PAN-OS Code Injection Vulnerability",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-0322",
+      "published": "2026-10-14",
+      "due_date": "2026-10-17",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "CVE-2026-104935",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "title": "Ivanti Connect Secure: Ivanti Connect Secure Authentication Bypass by Spoofing Vulnerability",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-104935",
+      "published": "2026-10-13",
+      "due_date": "2026-10-16",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "CVE-2026-96951",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "title": "Microsoft Windows: Microsoft Windows Command Injection Vulnerability",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-96951",
+      "published": "2026-10-13",
+      "due_date": "2026-10-16",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "CVE-2015-5477",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "title": "ISC BIND:  ISC BIND Data Processing Errors Vulnerability",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-5477",
+      "published": "2026-10-08",
+      "due_date": "2026-10-11",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "CVE-2016-3081",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "title": "Apache Struts: Apache Struts Command Injection Vulnerability",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2016-3081",
+      "published": "2026-10-08",
+      "due_date": "2026-10-11",
+      "match": {
+        "status": "relevant",
+        "hits": [
+          "apache"
+        ]
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "CVE-2023-22894",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "title": "Strapi Strapi: Strapi Cleartext Storage of Sensitive Information Vulnerability",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-22894",
+      "published": "2026-10-08",
+      "due_date": "2026-10-11",
+      "match": {
+        "status": "relevant",
+        "hits": [
+          "strapi"
+        ]
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "CVE-2021-3199",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "title": "ONLYOFFICE Docs: ONLYOFFICE Docs Server Path Traversal Vulnerability",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2021-3199",
+      "published": "2026-10-08",
+      "due_date": "2026-10-11",
+      "match": {
+        "status": "relevant",
+        "hits": [
+          "onlyoffice"
+        ]
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "CVE-2015-3306",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "title": "ProFTPD ProFTPD: ProFTPD Improper Access Control Vulnerability",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-3306",
+      "published": "2026-10-08",
+      "due_date": "2026-10-11",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "jpcert-weekly-2026-10-21",
+      "source": "jpcert",
+      "severity": "info",
+      "title": "Weekly Report 2026-10-21号",
+      "url": "https://www.jpcert.or.jp/wr/2026/wr261021.html",
+      "published": "2026-10-21",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "jpcert-weekly-2026-10-15",
+      "source": "jpcert",
+      "severity": "info",
+      "title": "Weekly Report 2026-10-15号",
+      "url": "https://www.jpcert.or.jp/wr/2026/wr261015.html",
+      "published": "2026-10-15",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "jpcert-weekly-2026-10-07",
+      "source": "jpcert",
+      "severity": "info",
+      "title": "Weekly Report 2026-10-07号",
+      "url": "https://www.jpcert.or.jp/wr/2026/wr261007.html",
+      "published": "2026-10-07",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "jpcert-weekly-2026-09-30",
+      "source": "jpcert",
+      "severity": "info",
+      "title": "Weekly Report 2026-09-30号",
+      "url": "https://www.jpcert.or.jp/wr/2026/wr260930.html",
+      "published": "2026-09-30",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "jpcert-weekly-2026-09-16",
+      "source": "jpcert",
+      "severity": "info",
+      "title": "Weekly Report 2026-09-16号",
+      "url": "https://www.jpcert.or.jp/wr/2026/wr260916.html",
+      "published": "2026-09-16",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "jpcert-weekly-2026-09-09",
+      "source": "jpcert",
+      "severity": "info",
+      "title": "Weekly Report 2026-09-09号",
+      "url": "https://www.jpcert.or.jp/wr/2026/wr260909.html",
+      "published": "2026-09-09",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "jpcert-weekly-2026-09-02",
+      "source": "jpcert",
+      "severity": "info",
+      "title": "Weekly Report 2026-09-02号",
+      "url": "https://www.jpcert.or.jp/wr/2026/wr260902.html",
+      "published": "2026-09-02",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "jpcert-weekly-2026-08-26",
+      "source": "jpcert",
+      "severity": "info",
+      "title": "Weekly Report 2026-08-26号",
+      "url": "https://www.jpcert.or.jp/wr/2026/wr260826.html",
+      "published": "2026-08-26",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "jpcert-weekly-2026-08-19",
+      "source": "jpcert",
+      "severity": "info",
+      "title": "Weekly Report 2026-08-19号",
+      "url": "https://www.jpcert.or.jp/wr/2026/wr260819.html",
+      "published": "2026-08-19",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "jpcert-weekly-2026-08-13",
+      "source": "jpcert",
+      "severity": "info",
+      "title": "Weekly Report 2026-08-13号",
+      "url": "https://www.jpcert.or.jp/wr/2026/wr260813.html",
+      "published": "2026-08-13",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "jpcert-ics-ics-form",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "title": "[ICS/OT] 制御システムインシデントの報告",
+      "url": "https://www.jpcert.or.jp/ics/ics-form.html",
+      "published": "",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "jpcert-ics-ics-conference",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "title": "[ICS/OT] 制御システムセキュリティカンファレンス",
+      "url": "https://www.jpcert.or.jp/ics/ics-conference.html",
+      "published": "",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "jpcert-ics-information07",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "title": "[ICS/OT] 標準から学ぶICSセキュリティ",
+      "url": "https://www.jpcert.or.jp/ics/information07.html",
+      "published": "",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "jpcert-ics-sirt-for-ics_guide",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "title": "[ICS/OT] 「制御系SIRTの機能を備えるための手引き」（CSIRTマテリアル補完資料）",
+      "url": "https://www.jpcert.or.jp/ics/sirt-for-ics_guide.html",
+      "published": "",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "jpcert-ics-information06",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "title": "[ICS/OT] 工場における産業用IoT導入のためのセキュリティ ファーストステップ",
+      "url": "https://www.jpcert.or.jp/ics/information06.html",
+      "published": "",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "jpcert-ics-ics-sirt-survey",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "title": "[ICS/OT] 産業制御システムを対象としたSIRT（制御系SIRT）の実態に関する調査報告書 - 一般製造業 -",
+      "url": "https://www.jpcert.or.jp/ics/ics-sirt-survey.html",
+      "published": "",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "jpcert-ics-ssat",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "title": "[ICS/OT] 日本版SSAT(SCADA Self Assessment Tool)",
+      "url": "https://www.jpcert.or.jp/ics/ssat.html",
+      "published": "",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "jpcert-ics-jclics",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "title": "[ICS/OT] J-CLICS STEP1／STEP2（ICSセキュリティ自己評価ツール）",
+      "url": "https://www.jpcert.or.jp/ics/jclics.html",
+      "published": "",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "type": "advisory",
+      "id": "jpcert-ics-jclics-attack-path-countermeasures",
+      "source": "jpcert_ics",
+      "severity": "info",
+      "title": "[ICS/OT] J-CLICS 攻撃経路対策編（ICSセキュリティ自己評価ツール）",
+      "url": "https://www.jpcert.or.jp/ics/jclics-attack-path-countermeasures.html",
+      "published": "",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    }
+  ]
 }

@@ -36,6 +36,11 @@ DEFAULT_INVENTORY = {
         {"name": "openssh", "keywords": ["openssh", "ssh"]},
         {"name": "openssl", "keywords": ["openssl"]},
         {"name": "chrome", "keywords": ["chrome", "chromium"]},
+        {"name": "plex", "keywords": ["plex media server", "plex"]},
+        {"name": "strapi", "keywords": ["strapi"]},
+        {"name": "atlassian", "keywords": ["atlassian", "jira", "confluence"]},
+        {"name": "apache", "keywords": ["apache struts", "apache http"]},
+        {"name": "onlyoffice", "keywords": ["onlyoffice"]},
         # ネットワーク機器・Windowsは現状未使用のため監視対象外。使い始めたら戻す。
     ]
 }
