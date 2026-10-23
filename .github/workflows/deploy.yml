@@ -18,6 +18,7 @@ jobs:
       - run: python3 -m py_compile hub/server.py agent/*.py admin/*.py
       - run: python3 tests/test_v05.py
       - run: python3 tests/test_mamori.py
+      - run: python3 tests/test_guard.py
 
   deploy:
     needs: test
