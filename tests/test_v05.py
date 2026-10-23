@@ -108,6 +108,13 @@ def test_hub() -> None:
     probe = media / "zz-test.mp4"
     probe.write_bytes(bytes(range(256)) * 40)
     (tmp / "latest_bundle.json").write_text(json.dumps({"created": "2026-10-23T00:00:00+00:00", "objects": [{"id": "x"}]}))
+    now = time.time()
+    (tmp / "observations.jsonl").write_text("".join(json.dumps(o) + "\n" for o in [
+        {"type": "attack-observation", "pattern": "public-clear-obs", "tlp": "CLEAR", "received_at": now},
+        {"type": "attack-observation", "pattern": "secret-green-obs", "tlp": "GREEN", "received_at": now},
+        {"type": "attack-observation", "pattern": "secret-amber-obs", "tlp": "AMBER", "received_at": now},
+        {"type": "attack-observation", "pattern": "old-clear-obs", "tlp": "CLEAR", "received_at": now - 91 * 86400},
+    ]))
     port = free_port()
     env = dict(os.environ, MAMORI_DATA=str(tmp), MAMORI_APP=str(ROOT), PORT=str(port), MAMORI_NO_REFRESH="1",
                MAMORI_KEYS_JSON=json.dumps({"k-green": {"org": "acme", "tlp_max": "GREEN"},
@@ -125,6 +132,11 @@ def test_hub() -> None:
         st, _, body = req(base + "/api/stats")
         s = json.loads(body)
         check("stats: version 0.5 and org count", st == 200 and s["version"] == "0.5" and s["participants"] == 2, str(s))
+        st, _, body = req(base + "/api/stix")
+        txt = body.decode()
+        check("stix: only CLEAR and in-retention observations", st == 200 and "public-clear-obs" in txt
+              and "secret-green-obs" not in txt and "secret-amber-obs" not in txt and "old-clear-obs" not in txt, txt[:300])
+        check("retention: old lines physically removed", "old-clear-obs" not in (tmp / "observations.jsonl").read_text())
         st, _, _ = req(base + "/api/whoami")
         check("whoami: no key -> 401", st == 401)
         st, _, body = req(base + "/api/whoami", key="k-green")
@@ -137,19 +149,23 @@ def test_hub() -> None:
                           data={"type": "attack-observation", "pattern": "x", "tlp": "RED"})
         check("post: RED rejected", st == 400)
         st, _, body = req(base + "/api/observations", key="k-green")
-        check("read: GREEN key cannot see AMBER", json.loads(body)["count"] == 0, body.decode())
+        seen = [o["pattern"] for o in json.loads(body)["observations"]]
+        check("read: GREEN key cannot see AMBER", not any("amber" in x or "brute force" in x for x in seen), str(seen))
         st, _, body = req(base + "/api/observations", key="k-amber")
-        o = json.loads(body)["observations"][0]
+        o = [x for x in json.loads(body)["observations"] if "brute force" in x["pattern"]][0]
         check("anonymize: ip /24 + email masked", "203.0.113.0/24" in o["pattern"] and "a@b.co" not in o["pattern"], o["pattern"])
         import hashlib
         check("org_hash stable sha256", o["org_hash"] == hashlib.sha256(b"mamori-org:acme").hexdigest()[:10])
+        r = subprocess.run(["bash", str(ROOT / "tools" / "feed.sh")], capture_output=True, text=True,
+                           env=dict(os.environ, MAMORI_HUB=base, MAMORI_KEY="k-amber"))
+        check("feed.sh lists observations in Japanese", r.returncode == 0 and "共有された観測" in r.stdout and "[黄]" in r.stdout, r.stdout + r.stderr)
         st, h, body = req(base + "/media/zz-test.mp4", headers={"Range": "bytes=10-19"})
         check("media: range 206", st == 206 and body == (bytes(range(256)) * 40)[10:20] and h.get("Content-Range") == "bytes 10-19/10240", str((st, h.get("Content-Range"))))
         st, _, _ = req(base + "/media/../server.py")
         check("media: no traversal", st == 404)
         st, _, body = req(base + "/kit.tar.gz")
         names = tarfile.open(fileobj=io.BytesIO(body)).getnames()
-        check("kit: contains run.sh, tools, example", all(n in names for n in ["mamori/run.sh", "mamori/tools/share.sh", "mamori/examples/inventory.example.json"]), str(names[:10]))
+        check("kit: contains run.sh, tools, example", all(n in names for n in ["mamori/run.sh", "mamori/tools/share.sh", "mamori/tools/feed.sh", "mamori/examples/inventory.example.json"]), str(names[:10]))
         check("kit: excludes admin tool", not any("admin" in n for n in names))
         for path in ("/", "/start", "/terms", "/docs/keys"):
             st, _, body = req(base + path)

@@ -186,17 +186,53 @@ def refresh_once() -> dict:
     (work / "matched.json").write_bytes(matched)
     out = json.loads(_py("draft_actions.py", str(work / "matched.json")))
     (work / "bundle.json").write_text(json.dumps(out["share_bundle"], ensure_ascii=False, indent=2))
-    stix = _py("export_stix.py", str(work / "bundle.json"), str(OBS_FILE))
     with _file_lock:
         _atomic_write(LATEST_FILE, (work / "bundle.json").read_bytes())
-        _atomic_write(DATA_DIR / "stix_bundle.json", stix)
         rep = DATA_DIR / "reports"
         rep.mkdir(exist_ok=True)
         stamp = time.strftime("%Y%m%dT%H%M", time.gmtime(time.time() + 9 * 3600))
         _atomic_write(rep / f"report-{stamp}.md", out["report_md"].encode())
         for old in sorted(rep.glob("report-*.md"))[:-60]:
             old.unlink(missing_ok=True)
+    prune_observations()
+    rebuild_stix()
     return {"items": len(raw_obj["items"]), "errors": raw_obj.get("errors", [])}
+
+
+def prune_observations() -> int:
+    """90日を過ぎた観測をファイルから実際に消す（読み出し時の除外だけにしない）。"""
+    if not OBS_FILE.exists():
+        return 0
+    cutoff = time.time() - RETENTION_SEC
+    with _file_lock:
+        keep, dropped = [], 0
+        for line in OBS_FILE.read_text().splitlines():
+            try:
+                o = json.loads(line)
+            except json.JSONDecodeError:
+                dropped += 1
+                continue
+            if o.get("received_at", 0) >= cutoff:
+                keep.append(line)
+            else:
+                dropped += 1
+        if dropped:
+            _atomic_write(OBS_FILE, ("\n".join(keep) + ("\n" if keep else "")).encode())
+    return dropped
+
+
+def rebuild_stix() -> None:
+    """公開の /api/stix には TLP:CLEAR かつ保持期間内の観測だけを入れる。"""
+    if not LATEST_FILE.exists():
+        return
+    work = DATA_DIR / "work"
+    work.mkdir(exist_ok=True)
+    public = work / "obs_public.jsonl"
+    public.write_text("".join(json.dumps(o, ensure_ascii=False) + "\n"
+                              for o in _read_obs() if o.get("tlp") == "CLEAR"))
+    stix = _py("export_stix.py", str(LATEST_FILE), str(public))
+    with _file_lock:
+        _atomic_write(DATA_DIR / "stix_bundle.json", stix)
 
 
 def _bundle_age_hours() -> float:
@@ -579,6 +615,12 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     port = int(os.environ.get("PORT", "8080"))
     print(f"mamori hub v{VERSION} listening on :{port} (keys: {len(KEYS)})", flush=True)
+    if (APP_DIR / "agent").exists():
+        try:  # 起動時に公開STIXを必ず作り直す（古い版が書いた内容を残さない）
+            prune_observations()
+            rebuild_stix()
+        except Exception as e:  # noqa: BLE001
+            print(f"stix rebuild failed: {e}", flush=True)
     if os.environ.get("MAMORI_NO_REFRESH") != "1" and (APP_DIR / "agent").exists():
         threading.Thread(target=refresh_loop, daemon=True).start()
     ThreadingHTTPServer(("0.0.0.0", port), Handler).serve_forever()
