@@ -331,52 +331,122 @@ def render_intel() -> bytes:
 
 LANDING = """<!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>守 Mamori — セキュリティの民主化</title>
-<style>body{font-family:system-ui,sans-serif;max-width:760px;margin:3rem auto;padding:0 1rem;line-height:1.75;color:#1a1a1a}
-h1{font-size:2rem}h2{font-size:1.2rem;margin-top:2rem}code{background:#f2f2f2;padding:.1em .4em;border-radius:4px}
-.card{border:1px solid #e5e5e5;border-radius:12px;padding:1.2rem;margin:1rem 0}
-.stat{display:inline-block;background:#f6f9f7;border:1px solid #dcebe2;border-radius:10px;padding:.6rem 1rem;margin:.2rem .4rem .2rem 0;font-size:.95rem}
-.stat b{font-size:1.2rem;color:#0b7a4b}
-a{color:#0b5fff}small{color:#888}</style></head><body>
-<h1>🛡 守（まもり）Mamori</h1>
-<p><strong>みんなでレポートして、みんなで守る。</strong><br>
-Mamoriは、最新の攻撃情報・脆弱性情報を自動で集め、自分の環境に関係あるか照合し、
-対策まで下書きするセキュリティエージェントです。ある1社が受けた攻撃の知見が、全員の防御になります。</p>
+<title>守 Mamori — みんなでレポートして、みんなで守る</title>
+<meta name="description" content="Mamoriは最新の攻撃・脆弱性情報を自動収集し、自社環境への影響を照合、対策まで下書きするセキュリティエージェント。CISA KEV/JPCERT連携、TLP管理、90日自動削除。">
+<meta property="og:title" content="守 Mamori — セキュリティの民主化">
+<meta property="og:description" content="1社が受けた攻撃の知見が、全員の防御になる。脅威インテル共有ハブ。">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<style>
+:root{--bg:#0d1117;--card:#161b22;--border:#30363d;--fg:#e6edf3;--muted:#8b949e;--accent:#3fb950;--accent2:#58a6ff;--warn:#d29922}
+@media (prefers-color-scheme:light){:root{--bg:#ffffff;--card:#f6f8fa;--border:#d0d7de;--fg:#1f2328;--muted:#57606a;--accent:#1a7f37;--accent2:#0969da}}
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--fg);margin:0;line-height:1.7}
+.skip{position:absolute;left:-9999px;top:0;background:var(--accent);color:#000;padding:.5rem 1rem;z-index:9}
+.skip:focus{left:0}
+header{border-bottom:1px solid var(--border);padding:1rem 1.5rem;display:flex;justify-content:space-between;align-items:center;max-width:1100px;margin:0 auto}
+.brand{font-weight:700;font-size:1.15rem;text-decoration:none;color:var(--fg)}
+.brand span{color:var(--accent)}
+header small{color:var(--muted)}
+main{max-width:1100px;margin:0 auto;padding:0 1.5rem}
+.hero{padding:4rem 0 3rem;text-align:center}
+.hero .shield-svg{display:block;margin:0 auto;filter:drop-shadow(0 0 18px rgba(63,185,80,.35))}
+.hero h1{font-size:2.4rem;margin:.6rem 0 .4rem;letter-spacing:-.02em}
+.hero .tag{color:var(--accent);font-weight:600;font-size:1.15rem;margin-bottom:1rem}
+.hero p.lead{max-width:640px;margin:0 auto 1.8rem;color:var(--muted);font-size:1.05rem}
+.cta{display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-block;padding:.75rem 1.6rem;border-radius:8px;text-decoration:none;font-weight:600;font-size:1rem}
+.btn.primary{background:var(--accent);color:#04160a}
+.btn.primary:hover{background:#4ac95c}
+.btn.ghost{border:1px solid var(--border);color:var(--fg)}
+.btn.ghost:hover{border-color:var(--accent)}
+.stats{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin:2.5rem 0 0}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem 1.5rem;min-width:140px;text-align:center}
+.stat b{display:block;font-size:1.8rem;color:var(--accent)}
+.stat span{color:var(--muted);font-size:.85rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.2rem;margin:2.5rem 0}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.5rem}
+.card h2{font-size:1.15rem;margin:0 0 .8rem;color:var(--fg)}
+.card ol,.card ul{margin:0;padding-left:1.3rem}
+.card li{margin:.4rem 0;color:var(--muted)}
+.card li strong{color:var(--fg)}
+code{background:#1f2630;padding:.15em .45em;border-radius:4px;font-size:.9em;color:var(--accent2)}
+a{color:var(--accent2)}
+a:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.api-list{list-style:none;padding:0}
+.api-list li{margin:.5rem 0}
+.api-list a{font-family:ui-monospace,monospace;font-size:.92rem}
+.badge{display:inline-block;background:#1f2630;border:1px solid var(--border);border-radius:6px;padding:.1rem .5rem;font-size:.75rem;color:var(--muted);margin-left:.4rem}
+.trust{text-align:center;color:var(--muted);font-size:.9rem;margin:2.5rem 0 1rem}
+.trust b{color:var(--fg)}
+footer{border-top:1px solid var(--border);margin-top:3rem;padding:1.5rem;text-align:center;color:var(--muted);font-size:.85rem}
+footer a{margin:0 .5rem}
+.en-note{background:#1f2630;border-left:3px solid var(--accent2);padding:.8rem 1rem;border-radius:0 8px 8px 0;font-size:.85rem;color:var(--muted);margin-top:1.5rem}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media(max-width:600px){.hero h1{font-size:1.8rem}.stat b{font-size:1.4rem}}
+</style></head><body>
+<a class="skip" href="#main">本文へスキップ</a>
+<header>
+<a class="brand" href="/">🛡 守 <span>Mamori</span></a>
+<small>an <a href="https://teai.io" style="color:var(--muted)">Enabler</a> project · v0.5</small>
+</header>
+<main id="main">
+<section class="hero">
+<svg class="shield-svg" viewBox="0 0 64 64" width="72" height="72" role="img" aria-label="Mamoriの盾ロゴ"><path d="M32 3 6 13v16c0 16 11 27 26 32 15-5 26-16 26-32V13L32 3z" fill="none" stroke="var(--accent)" stroke-width="3.5" stroke-linejoin="round"/><path d="M20 32l8 8 16-16" fill="none" stroke="var(--accent)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<h1>みんなでレポートして、<br>みんなで守る。</h1>
+<p class="tag">ある1社が受けた攻撃の知見が、全員の防御になる。</p>
+<p class="lead">Mamoriは、最新の攻撃情報・脆弱性情報（CISA KEV／JPCERT/CC）を6時間ごとに自動収集し、あなたの環境に関係あるか照合、対策の下書きまで出すセキュリティエージェントです。仕組み・API・データ取り扱いはすべて公開。まずは認証不要の公開インテルから試せます。</p>
+<div class="cta">
+<a class="btn primary" href="/start">参加ガイド（5分）</a>
+<a class="btn ghost" href="/intel">最新の脅威を見る（登録不要）</a>
+<a class="btn ghost" href="/api/sample-report">対策レポートの実物</a>
+</div>
+<p style="margin-top:1rem;font-size:.85rem;color:var(--muted)"><a href="/kit.tar.gz">照合キット</a> = 自社スタックと脆弱性情報を突き合わせるローカル実行スクリプト一式（tar.gz・認証不要）</p>
+<div class="stats" id="stats">__STATS_HTML__</div>
+</section>
 
-<div class="card"><h2>いまの共有状況</h2>
-<div id="stats">__STATS_HTML__</div>
-<p style="margin-top:.6rem"><a href="/intel"><strong>最新の脅威を見る</strong></a>（登録不要）<br>
-<a href="/api/latest">/api/latest</a> — 最新の脅威インテル（TLP:CLEAR・誰でも読めます）<br>
-<a href="/api/stix">/api/stix</a> — STIX 2.1 バンドル（MISP/OpenCTIにインポート可）<br>
-<a href="/api/sample-report">/api/sample-report</a> — 対策下書きレポートの実物</p></div>
+<div class="grid">
+<div class="card"><h2>📡 公開API（登録不要）</h2>
+<ul class="api-list">
+<li><a href="/api/latest">/api/latest</a> — 最新の脅威インテル<span class="badge">TLP:CLEAR</span></li>
+<li><a href="/api/stix">/api/stix</a> — STIX 2.1 バンドル（MISP/OpenCTIにインポート可）</li>
+<li><a href="/api/sample-report">/api/sample-report</a> — 対策下書きレポートの実物</li>
+</ul></div>
 
-<div class="card"><h2>参加すると何が起きる？</h2>
+<div class="card"><h2>🤝 参加すると何が起きる？</h2>
 <ol>
 <li>発行された<strong>参加者専用キー</strong>で、攻撃の観測（怪しいIP・ペイロード・手法）を <code>POST /api/observations</code> に投稿</li>
-<li>ハブ側でも自動匿名化（IP最終オクテット掩蔽・メールアドレス除去・時刻丸め）</li>
-<li>TLPラベル（CLEAR/GREEN/AMBER）で共有範囲を自分で制御</li>
-<li>観測は90日で自動削除。削除依頼は随時受付</li>
+<li>ハブ側で<strong>自動匿名化</strong>（IP最終オクテット掩蔽・メールアドレス除去・時刻丸め）</li>
+<li><strong>TLPラベル</strong>（CLEAR/GREEN/AMBER）で共有範囲を自分で制御</li>
+<li>観測は<strong>90日で自動削除</strong>。削除依頼は随時受付</li>
 </ol></div>
 
-<div class="card"><h2>投稿者の保護</h2>
+<div class="card"><h2>🔒 投稿者の保護</h2>
 <ul>
 <li>組織名は公開されません（統計は件数のみ）</li>
 <li>IPアドレスは /24 に丸めて保存</li>
 <li>メールアドレスらしき文字列は自動で除去</li>
 <li>AMBER指定の観測は参加者のみが閲覧</li>
 </ul>
-<p><small>それでも識別可能な情報（自社ドメイン等）は投稿前に除いてください。</small></p></div>
+<p style="margin:.8rem 0 0"><small>それでも識別可能な情報（自社ドメイン等）は投稿前に除いてください。詳しくは<a href="/terms">データ取り扱い方針</a>へ。</small></p></div>
+</div>
 
-<p><strong>はじめての方へ:</strong> <a href="/start">参加ガイド（5分）</a> ／ <a href="/kit.tar.gz">照合キットをダウンロード</a> ／ 製品ページ <a href="https://teai.io/mamori">teai.io/mamori</a></p>
-<p><small>Mamori v0.5 — an Enabler project / 脅威情報は6時間ごとに自動取得 / 観測データは90日で自動削除されます / <a href="/terms">利用規約・データ取り扱い</a> / <a href="/docs/keys">キー管理運用手順</a></small></p>
+<p class="trust">情報源: <b>CISA KEV</b>（悪用確認済み脆弱性） · <b>JPCERT/CC 注意喚起</b> · <b>JPCERT/CC 週報</b> — 6時間ごとに自動取得 / 観測データは90日で自動削除</p>
+
+<div class="en-note" lang="en"><strong>English:</strong> Mamori is a mutual-defense threat-intel hub. It auto-collects CISA KEV &amp; JPCERT advisories every 6 hours, matches them against your stack, and drafts countermeasures. Public TLP:CLEAR intel is free at <a href="/api/latest">/api/latest</a> (STIX 2.1 available). Observations are anonymized (IP /24, email stripped) and auto-deleted after 90 days.</div>
+</main>
+<footer>
+Mamori v0.5 — an Enabler project<br>
+<a href="https://teai.io/mamori">製品ページ</a> · <a href="/terms">利用規約・データ取り扱い</a> · <a href="/docs/keys">キー管理運用手順</a> · <a href="/start">参加ガイド</a>
+</footer>
 <script>
 fetch('/api/stats').then(r=>r.json()).then(s=>{
   document.getElementById('stats').innerHTML =
-    '<span class="stat"><b>'+s.participants+'</b> 参加組織</span>'+
-    '<span class="stat"><b>'+s.observations_shared+'</b> 共有された観測</span>'+
-    '<span class="stat"><b>'+s.intel_objects+'</b> 公開インテル件数</span>'+
-    '<span class="stat">最終更新 '+ (s.last_update||'—') +'</span>';
-}).catch(()=>{document.getElementById('stats').textContent='統計を取得できませんでした';});
+    '<div class="stat"><b>'+s.participants+'</b><span>参加組織</span></div>'+
+    '<div class="stat"><b>'+s.observations_shared+'</b><span>共有された観測</span></div>'+
+    '<div class="stat"><b>'+s.intel_objects+'</b><span>公開インテル件数</span></div>'+
+    '<div class="stat"><b style="font-size:1rem">'+ (s.last_update||'—') +'</b><span>最終更新</span></div>';
+}).catch(()=>{});
 </script>
 </body></html>"""
 
@@ -512,10 +582,10 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/":
             stats = _stats()
             html = LANDING.replace("__STATS_HTML__",
-                f'<span class="stat"><b>{stats["participants"]}</b> 参加組織</span>'
-                f'<span class="stat"><b>{stats["observations_shared"]}</b> 共有された観測</span>'
-                f'<span class="stat"><b>{stats["intel_objects"]}</b> 公開インテル件数</span>'
-                f'<span class="stat">最終更新 {stats["last_update"] or "—"}</span>')
+                f'<div class="stat"><b>{stats["participants"]}</b><span>参加組織</span></div>'
+                f'<div class="stat"><b>{stats["observations_shared"]}</b><span>共有された観測</span></div>'
+                f'<div class="stat"><b>{stats["intel_objects"]}</b><span>公開インテル件数</span></div>'
+                f'<div class="stat"><b style="font-size:1rem">{stats["last_update"] or "—"}</b><span>最終更新</span></div>')
             self._send(200, html.encode(), "text/html; charset=utf-8")
         elif path == "/healthz":
             self._json(200, {"ok": True, "ts": time.time()})

@@ -1,0 +1,169 @@
+{
+  "_generated_by": "agent/asset_inventory.py",
+  "_note": "CURATED_STACK は手動管理。アプリ/brew は自動収集。fly_apps は参考情報。",
+  "watch": [
+    {
+      "name": "cloudflare",
+      "keywords": [
+        "cloudflare"
+      ]
+    },
+    {
+      "name": "fly.io",
+      "keywords": [
+        "fly.io",
+        "flyio"
+      ]
+    },
+    {
+      "name": "node.js",
+      "keywords": [
+        "node.js",
+        "nodejs",
+        "npm"
+      ]
+    },
+    {
+      "name": "python",
+      "keywords": [
+        "python",
+        "cpython",
+        "pip "
+      ]
+    },
+    {
+      "name": "rust",
+      "keywords": [
+        "rustlang",
+        "rust-lang",
+        "cargo crate",
+        "tokio",
+        "axum"
+      ]
+    },
+    {
+      "name": "swift/ios",
+      "keywords": [
+        "swift",
+        "ios",
+        "macos",
+        "apple"
+      ]
+    },
+    {
+      "name": "stripe",
+      "keywords": [
+        "stripe"
+      ]
+    },
+    {
+      "name": "sqlite/turso",
+      "keywords": [
+        "sqlite",
+        "turso",
+        "libsql"
+      ]
+    },
+    {
+      "name": "docker",
+      "keywords": [
+        "docker",
+        "container"
+      ]
+    },
+    {
+      "name": "github actions",
+      "keywords": [
+        "github actions",
+        "github"
+      ]
+    },
+    {
+      "name": "openssh",
+      "keywords": [
+        "openssh",
+        "ssh"
+      ]
+    },
+    {
+      "name": "openssl",
+      "keywords": [
+        "openssl"
+      ]
+    },
+    {
+      "name": "chrome",
+      "keywords": [
+        "chrome",
+        "chromium"
+      ]
+    },
+    {
+      "name": "debian",
+      "keywords": [
+        "debian",
+        "bookworm",
+        "trixie"
+      ]
+    },
+    {
+      "name": "postgresql",
+      "keywords": [
+        "postgresql",
+        "postgres"
+      ]
+    },
+    {
+      "name": "redis",
+      "keywords": [
+        "redis"
+      ]
+    },
+    {
+      "name": "wordpress",
+      "keywords": [
+        "wordpress",
+        "wp-"
+      ]
+    },
+    {
+      "name": "plex",
+      "keywords": [
+        "plex media server",
+        "plex"
+      ]
+    },
+    {
+      "name": "nordvpn",
+      "keywords": [
+        "nordvpn"
+      ]
+    },
+    {
+      "name": "xcode",
+      "keywords": [
+        "xcode"
+      ]
+    },
+    {
+      "name": "line",
+      "keywords": [
+        "line messenger"
+      ]
+    },
+    {
+      "name": "blender",
+      "keywords": [
+        "blender"
+      ]
+    },
+    {
+      "name": "ollama",
+      "keywords": [
+        "ollama",
+        "llama.cpp"
+      ]
+    }
+  ],
+  "fly_deployed_apps": []
+}
