@@ -12,7 +12,9 @@ from __future__ import annotations
 import hashlib
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+
+JST = timezone(timedelta(hours=9))
 
 
 # 製品別の具体的対策ガイド（v0.3）。ベンダー公式情報へのリンクと確認手順を優先する。
@@ -43,6 +45,29 @@ PRODUCT_GUIDANCE = {
         "最新のセキュリティ修正を適用: https://github.com/ONLYOFFICE/DocumentServer/releases",
         "ドキュメントサーバーをインターネット直接公開していないか確認",
     ],
+    "php": [
+        "PHP のバージョン確認: php -v（レンタルサーバーは管理画面のPHP設定）",
+        "JPCERT/CC 注意喚起の「対象」と「対策」の節で影響バージョンと修正版を確認し、修正版へ更新",
+        "参考: PHP 公式のリリース情報 https://www.php.net/ChangeLog-8.php",
+    ],
+    "fortinet": [
+        "FortiGate / FortiOS 等のバージョンを管理画面（ダッシュボード → システム情報）で確認",
+        "Fortinet PSIRT で影響バージョンと修正版を確認し更新: https://www.fortiguard.com/psirt",
+        "管理画面（HTTPS/SSH）をインターネットに公開していないか確認",
+    ],
+    "ivanti": [
+        "Ivanti Connect Secure 等のバージョンを管理画面で確認",
+        "Ivanti セキュリティアドバイザリで修正版と緩和策を確認: https://forums.ivanti.com/s/security-advisory",
+        "整合性チェックツール（ICT）で侵害の痕跡を確認",
+    ],
+    "cisco": [
+        "対象機器のソフトウェアバージョンを確認（show version）",
+        "Cisco Security Advisories で影響と修正版を確認: https://sec.cloudapps.cisco.com/security/center/publicationListing.x",
+    ],
+    "microsoft windows": [
+        "Windows Update で今月のセキュリティ更新プログラムが適用済みか確認（設定 → Windows Update → 更新の履歴）",
+        "参考: マイクロソフト セキュリティ更新プログラム ガイド https://msrc.microsoft.com/update-guide",
+    ],
     "cloudflare": ["Cloudflare ダッシュボードのセキュリティイベントを確認し、関連マネージドルールが有効か確認"],
     "next.js": ["Next.js のバージョンを package.json で確認し、該当CVEの修正版（patched release）へ更新"],
     "node.js": ["Node.js のバージョンを確認（node -v）し、セキュリティリリース https://nodejs.org/en/blog/vulnerability を適用"],
@@ -66,6 +91,9 @@ def draft_actions(item: dict) -> list[str]:
     actions = []
     if item.get("severity") == "exploited-in-the-wild":
         actions.append(f"[緊急] {item['id']} は悪用確認済み。CISA対応期限: {item.get('due_date','—')}")
+    elif item.get("severity") == "alert":
+        cves = "、".join(item.get("cves") or []) or "本文参照"
+        actions.append(f"[注意喚起] JPCERT/CC が {item.get('published','')} に公開（対象CVE: {cves}）。本文の対象バージョンと回避策を確認")
     for hit in item.get("match", {}).get("hits", []):
         guidance = PRODUCT_GUIDANCE.get(hit)
         if guidance:
@@ -74,7 +102,9 @@ def draft_actions(item: dict) -> list[str]:
         else:
             actions.append(f"自社スタック「{hit}」との関連を確認: 依存バージョンと公開面を棚卸し")
     if item.get("required_action") and item["severity"] == "exploited-in-the-wild":
-        actions.append(f"CISA指定の対応（一般）: {item['required_action']}")
+        actions.append("CISA指定の対応（要約）: ベンダーの指示どおりに修正・緩和策を適用。できない場合は製品の使用を止める。"
+                       "期限は米国政府機関向けの目安")
+        actions.append(f"  原文: {item['required_action'][:300]}")
     actions.append(f"一次情報: {item.get('url')}")
     return actions
 
@@ -94,12 +124,32 @@ def make_share_record(observations: list[dict], org: str = "enabler") -> dict:
 
 def render_report(data: dict) -> str:
     s = data.get("summary", {})
+    try:
+        fetched = datetime.fromisoformat(data["fetched_at"]).astimezone(JST)
+    except Exception:  # noqa: BLE001
+        fetched = datetime.now(JST)
     lines = [
-        f"# 守（Mamori）脅威レポート — {data.get('fetched_at','')[:10]}",
+        f"# 守（Mamori）脅威レポート — {fetched:%Y-%m-%d %H:%M} JST",
         "",
         f"- 取得: {s.get('total',0)}件 / 要対応: **{s.get('relevant',0)}件** / 要確認: {s.get('maybe',0)}件",
         "",
     ]
+    if not s.get("relevant") and not s.get("maybe"):
+        lines += ["> 自社の製品に一致するものは0件でした。0件は「安全」という意味ではありません。",
+                  "> 製品の名前が英語で（版の数字なしで）書けているか確かめ、下の新着にも目を通してください。", ""]
+    # 直近7日の新着（自社に関係なくても、何が起きているかを一覧で）
+    since = (fetched - timedelta(days=7)).strftime("%Y-%m-%d")
+    fresh = sorted([i for i in data.get("items", []) if (i.get("published") or "") >= since
+                    and i.get("source") != "jpcert"],
+                   key=lambda i: i.get("published", ""), reverse=True)
+    if fresh:
+        mark = {"relevant": "🔴", "maybe": "🟡"}
+        lines.append(f"## 🆕 直近7日の新着 ({len(fresh)}件・{since}以降)")
+        for i in fresh:
+            m = mark.get(i.get("match", {}).get("status"), "・")
+            src = {"cisa_kev": "CISA KEV", "jpcert_alert": "JPCERT注意喚起"}.get(i.get("source"), i.get("source"))
+            lines.append(f"- {m} {i.get('published')} [{src}] {i.get('title','')[:90]} — {i.get('url')}")
+        lines.append("")
     for status, label in (("relevant", "🔴 要対応"), ("maybe", "🟡 要確認")):
         group = [i for i in data.get("items", []) if i.get("match", {}).get("status") == status]
         if not group:
@@ -126,11 +176,16 @@ def main() -> int:
             "id": i["id"],
             "source": i["source"],
             "severity": i.get("severity"),
+            "title": i.get("title"),
+            "published": i.get("published"),
+            "due_date": i.get("due_date"),
+            "required_action": i.get("required_action"),
             "match": i.get("match"),
             "url": i.get("url"),
         }
+        # 公開フィードは全件（各社の照合は手元の run.sh で行う）。
+        # match は運営（Enabler）の構成で照合した例。
         for i in data.get("items", [])
-        if i.get("match", {}).get("status") in ("relevant", "maybe")
     ]
     bundle = make_share_record(observations)
     out = {"report_md": report, "share_bundle": bundle}

@@ -1,0 +1,53 @@
+name: deploy
+on:
+  push:
+    branches: [main]
+  schedule:
+    # ハブは無アクセス時に停止する。6時間ごとに起こして脅威情報の自動取得を走らせる
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  test:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python3 -m py_compile hub/server.py agent/*.py admin/*.py
+      - run: python3 tests/test_v05.py
+
+  deploy:
+    needs: test
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --remote-only -a mamori-hub
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - name: verify
+        run: |
+          for i in 1 2 3 4 5 6; do
+            sleep 10
+            v=$(curl -fsS https://mamori.teai.io/api/stats | python3 -c 'import json,sys;print(json.load(sys.stdin).get("version"))') || true
+            [ "$v" = "0.5" ] && echo "live version $v" && exit 0
+          done
+          echo "version check failed"; exit 1
+
+  wake:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -fsS https://mamori.teai.io/healthz
+          sleep 90
+          curl -fsS https://mamori.teai.io/api/refresh-status | tee status.json
+          # 取得に失敗して情報が古いままならジョブを失敗にする
+          python3 -c 'import json;s=json.load(open("status.json"));a=s["bundle_age_hours"];print("age",a);exit(0 if a < 7 else 1)'

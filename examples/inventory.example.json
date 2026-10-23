@@ -1,0 +1,13 @@
+{
+  "_comment": "社内で使っている製品・サービスの名前を並べます。いちばん簡単なのは {\"name\": \"製品名\"} だけ書くこと（名前で照合します）。別名もあれば keywords に並べます。3文字以下の語は単語単位で照合します。",
+  "watch": [
+    {"name": "wordpress", "keywords": ["wordpress", "wp-"]},
+    {"name": "php", "keywords": ["php"]},
+    {"name": "microsoft windows", "keywords": ["microsoft windows", "マイクロソフト"]},
+    {"name": "fortinet", "keywords": ["fortinet", "fortigate", "fortios"]},
+    {"name": "ivanti", "keywords": ["ivanti"]},
+    {"name": "cisco", "keywords": ["cisco"]},
+    {"name": "atlassian", "keywords": ["atlassian", "jira", "confluence"]},
+    {"name": "nginx"}
+  ]
+}

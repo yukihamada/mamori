@@ -9,6 +9,7 @@ them into a common JSON shape:
 
 Sources (no auth required):
   - CISA KEV (Known Exploited Vulnerabilities catalog, JSON)
+  - JPCERT/CC alerts / 注意喚起 (HTML, lightweight parse)
   - JPCERT/CC weekly report (HTML, lightweight parse)
 """
 from __future__ import annotations
@@ -21,7 +22,7 @@ from datetime import datetime, timezone
 
 KEV_URL = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
 JPCERT_URL = "https://www.jpcert.or.jp/wr/"
-UA = {"User-Agent": "mamori-agent/0.1 (+https://mamori.fly.dev)"}
+UA = {"User-Agent": "mamori-agent/0.5 (+https://mamori.teai.io)"}
 
 
 def _get(url: str, timeout: int = 30) -> bytes:
@@ -73,47 +74,56 @@ def fetch_jpcert(limit: int = 10) -> list[dict]:
     return items
 
 
-ICS_URL = "https://www.jpcert.or.jp/ics/"
+ALERT_URL = "https://www.jpcert.or.jp/at/{year}.html"
+CVE_RE = re.compile(r"CVE-\d{4}-\d{4,7}")
 
-def fetch_jpcert_ics(limit: int = 10) -> list[dict]:
-    """JPCERT/CC ICS (制御システム) 情報ページ — OT/製造業向け。
-    個別アドバイザリの一覧が取れない場合は、ICSポータル自体を1件の
-    ウォッチ項目として返す（製造業の参加者に導線を示すため）。"""
-    html = _get(ICS_URL).decode("utf-8", "replace")
+
+def fetch_jpcert_alerts(limit: int = 8) -> list[dict]:
+    """JPCERT/CC 注意喚起 — 国内で特に対応が必要な脆弱性・攻撃の一次情報。"""
+    year = datetime.now(timezone.utc).year
+    html = _get(ALERT_URL.format(year=year)).decode("utf-8", "replace")
     items = []
-    for m in re.finditer(r'href="(/ics/[^"]+\.html)"[^>]*>(.*?)</a>', html):
-        path, title = m.groups()
+    pat = re.compile(r'<td class="c">(\d{4}-\d{2}-\d{2})</td>\s*<td class="at_link"><a href="(/at/\d{4}/(at\d+)\.html)">(.*?)</a>', re.S)
+    for date, path, atid, title in pat.findall(html):
         title = re.sub(r"<[^>]+>", "", title).strip()
-        if not title or len(title) < 6:
-            continue
+        cves = CVE_RE.findall(title)
         items.append({
-            "id": "jpcert-ics-" + path.rsplit("/", 1)[-1].replace(".html", ""),
-            "title": "[ICS/OT] " + title,
+            "id": f"jpcert-{atid}",
+            "title": title,
             "url": f"https://www.jpcert.or.jp{path}",
-            "published": "",
-            "source": "jpcert_ics",
-            "severity": "info",
+            "published": date,
+            "source": "jpcert_alert",
+            "severity": "alert",
             "products": [],
+            "cves": cves,
         })
         if len(items) >= limit:
             break
-    if not items:
-        items.append({
-            "id": "jpcert-ics-portal",
-            "title": "[ICS/OT] JPCERT/CC 制御システムセキュリティポータル",
-            "url": ICS_URL,
-            "published": "",
-            "source": "jpcert_ics",
-            "severity": "info",
-            "products": [],
-        })
     return items
+
+
+ICS_URL = "https://www.jpcert.or.jp/ics/"
+
+def fetch_jpcert_ics() -> list[dict]:
+    """JPCERT/CC ICS (制御システム) ポータルを1件のウォッチ項目として返す。
+    v0.4まではポータル内の静的ページ（手引き・様式）を脅威として並べており
+    ノイズだったため、v0.5でポータル1件に絞った。"""
+    return [{
+        "id": "jpcert-ics-portal",
+        "title": "[ICS/OT] JPCERT/CC 制御システムセキュリティ情報（製造業・OT向け）",
+        "url": ICS_URL,
+        "published": "",
+        "source": "jpcert_ics",
+        "severity": "info",
+        "products": [],
+    }]
 
 
 def main() -> int:
     items = []
     errors = []
-    for name, fn in (("cisa_kev", fetch_kev), ("jpcert", fetch_jpcert), ("jpcert_ics", fetch_jpcert_ics)):
+    for name, fn in (("cisa_kev", fetch_kev), ("jpcert_alert", fetch_jpcert_alerts),
+                     ("jpcert", lambda: fetch_jpcert(limit=4)), ("jpcert_ics", fetch_jpcert_ics)):
         try:
             items.extend(fn())
         except Exception as e:  # noqa: BLE001

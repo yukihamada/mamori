@@ -8,11 +8,13 @@ Mamoriは、最新の攻撃情報・脆弱性情報を自動で集め、自分�
 - ハブ: https://mamori.teai.io/
 - Live Intel（認証不要・TLP:CLEAR）: https://mamori.teai.io/api/latest
 - 公開カウンタ: https://mamori.teai.io/api/stats
+- 参加ガイド: https://mamori.teai.io/start
+- 照合キット: https://mamori.teai.io/kit.tar.gz
 
 ## できること
 
 1. **受信・照合（守りの更新ループ）**
-   - CISA KEV（悪用確認済み脆弱性カタログ）、JPCERT/CC週報を定期取得
+   - CISA KEV（悪用確認済み脆弱性カタログ）、JPCERT/CC注意喚起、JPCERT/CC週報を6時間ごとに自動取得（ハブ自身が取得）
    - 自分のスタック（`agent/match_inventory.py` の watch リスト）と照合し、「要対応 / 要確認 / 関係なし」に分類
    - 関係あるものは対策チェックリスト（バージョン確認・CISA指定対応・期限）を下書き
 2. **共有（相互防御・TLP管理）**
@@ -31,14 +33,21 @@ curl -s https://mamori.teai.io/api/latest
 
 ### 自分のスタックと照合する（ローカル）
 ```bash
-cd mamori
-# agent/match_inventory.py の DEFAULT_INVENTORY を自社構成に合わせて編集
-bash run.sh   # data/reports/report-*.md に日次レポート
+curl -sL https://mamori.teai.io/kit.tar.gz | tar xz && cd mamori
+cp examples/inventory.example.json inventory.json   # 使っている製品を並べる
+MAMORI_INVENTORY=inventory.json bash run.sh          # data/reports/ に日次レポート
 ```
 
 cron例（毎朝9時）:
 ```
-0 9 * * * cd /path/to/mamori && bash run.sh >> data/cron.log 2>&1
+0 9 * * * cd /path/to/mamori && MAMORI_INVENTORY=inventory.json bash run.sh >> data/cron.log 2>&1
+```
+
+### 参加者キーの確認と共有
+```bash
+export MAMORI_KEY=<組織専用キー>
+bash tools/check-key.sh                                   # {"ok": true, ...} なら有効
+bash tools/share.sh "wp-login.php への総当たり" 412 GREEN   # 観測を共有
 ```
 
 ### ハブ起動（自前運用する場合）
@@ -56,7 +65,13 @@ MAMORI_KEYS_JSON='{"key-alpha-001":{"org":"your-org","tlp_max":"AMBER"}}' \
 | `GET /api/latest` | 不要 | 最新の脅威インテル（TLP:CLEAR） |
 | `GET /api/stats` | 不要 | 参加組織数・観測件数・最終更新のカウンタ |
 | `POST /api/observations` | 参加者キー | 攻撃観測の投稿（TLP付・64KB上限・30回/時） |
-| `GET /api/observations` | 参加者キー | 自分のTLP権限までの観測一覧（直近200件） |
+| `GET /api/observations` | 参加者キー | 自分のTLP権限までの観測一覧（直近200件）。キーなしは CLEAR のみ |
+| `GET /api/whoami` | 参加者キー | キーの有効性確認（組織ハッシュとTLP上限のみ返す） |
+| `GET /api/stix` | 不要 | STIX 2.1 バンドル |
+| `GET /api/sample-report` | 不要 | 最新の対策下書きレポート |
+| `GET /api/refresh-status` | 不要 | 自動取得の状態 |
+| `GET /start` | 不要 | 参加ガイド |
+| `GET /kit.tar.gz` | 不要 | 照合キット |
 
 観測の投稿例：
 
@@ -69,7 +84,7 @@ curl -X POST https://mamori.teai.io/api/observations \
 
 ## 投稿者の保護（設計で担保）
 
-- **参加者専用キー**：組織ごとに発行・失効可能（`MAMORI_KEYS_JSON`）
+- **参加者専用キー**：組織ごとに発行・失効可能（`MAMORI_KEYS_JSON`・運営は `admin/issue_key.py`）。新規は GREEN まで、AMBER は確認済み組織のみ
 - **自動匿名化**：IPは /24 丸め、メールアドレス除去、時刻は1時間単位に丸め
 - **TLPラベル**：CLEAR/GREEN/AMBERで共有範囲を投稿者が制御。REDは拒否
 - **組織名非公開**：観測には組織名ではなくハッシュを付記。公開統計は件数のみ
@@ -81,6 +96,6 @@ curl -X POST https://mamori.teai.io/api/observations \
 ## 設計メモ
 
 - 依存は Python 標準ライブラリのみ（ハブもエージェントも）。壊れにくさ優先。
-- マッチングはキーワード照合の v0.2。CPE/SBOMベースの照合、STIX 2.1/TAXIIエクスポートはロードマップ。
+- 照合はキーワード＋CPE/SBOM（agent/match_cpe.py）。STIX 2.1 エクスポート対応済み、TAXII はロードマップ。
 - 対策の**実行**（パッチ適用・WAF追加）は本エージェントは行わず、下書き＋承認フローに委ねる。
 - 運営: Enabler（teai.io）。問い合わせは https://teai.io/contact

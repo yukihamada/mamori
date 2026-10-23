@@ -15,6 +15,7 @@ Output: same advisory objects with added "match": {"status": ..., "hits": [...]}
 from __future__ import annotations
 
 import json
+import re
 import sys
 
 DEFAULT_INVENTORY = {
@@ -24,7 +25,7 @@ DEFAULT_INVENTORY = {
         {"name": "next.js", "keywords": ["next.js", "nextjs"]},
         {"name": "react", "keywords": ["react"]},
         {"name": "node.js", "keywords": ["node.js", "nodejs", "npm"]},
-        {"name": "python", "keywords": ["python", "cpython", "pip"]},
+        {"name": "python", "keywords": ["python", "cpython", "pip "]},
         {"name": "rust", "keywords": ["rustlang", "rust-lang", "cargo crate", "tokio", "axum"]},
         {"name": "swift/ios", "keywords": ["swift", "ios", "macos", "apple"]},
         {"name": "wordpress", "keywords": ["wordpress", "wp-"]},
@@ -51,20 +52,49 @@ def classify(item: dict, watch: list[dict]) -> dict:
         item.get("title", ""),
         " ".join(item.get("products", []) or []),
     ]).lower()
-    hits = [w["name"] for w in watch if any(k in text for k in w["keywords"])]
+    # "ssh" や "ios" のような短い語の部分一致は誤検知が多いので、
+    # 3文字以下のキーワードは単語境界で判定する
+    def _hit(k: str) -> bool:
+        if len(k) <= 3:
+            return re.search(r"(?<![a-z0-9])" + re.escape(k) + r"(?![a-z0-9])", text) is not None
+        return k in text
+    # keywords を書かなかった項目は name（小文字）で照合する
+    hits = [w["name"] for w in watch
+            if any(_hit(str(k).lower()) for k in (w.get("keywords") or [w.get("name", "")]) if k)]
     if hits:
-        status = "relevant" if item.get("severity") == "exploited-in-the-wild" else "maybe"
+        status = "relevant" if item.get("severity") in ("exploited-in-the-wild", "alert") else "maybe"
     else:
         status = "not-relevant"
     item["match"] = {"status": status, "hits": hits}
     return item
 
 
+def load_inventory(path: str) -> dict:
+    """製品リストを読む。書式の誤りと、照合で一致しにくい名前を日本語で知らせる。"""
+    text = open(path, encoding="utf-8").read()
+    try:
+        inv = json.loads(text)
+    except json.JSONDecodeError as e:
+        line = text.splitlines()[e.lineno - 1] if e.lineno - 1 < len(text.splitlines()) else ""
+        sys.stderr.write(
+            f"✖ {path} の {e.lineno} 行目の書き方が違います（{e.colno} 文字目あたり）。\n"
+            f"    {line.strip()}\n"
+            "  見本（examples/inventory.example.json）とかっこ・カンマ・\"\" を見比べてください。\n"
+            "  よくある原因: 行の終わりのカンマ忘れ／最後の行の余計なカンマ。\n")
+        sys.exit(2)
+    for w in inv.get("watch", []):
+        name = str(w.get("name", ""))
+        if not w.get("keywords") and (re.search(r"[^\x00-\x7f]", name) or re.search(r"\s\d+(\.\d+)*$", name)):
+            sys.stderr.write(f"⚠ 「{name}」は一致しにくい名前です。脅威情報の題名は英語なので、"
+                             "WordPress のように英語で、版の数字を付けずに書いてください。\n")
+    return inv
+
+
 def main() -> int:
     src = sys.argv[1] if len(sys.argv) > 1 else None
     inv_path = sys.argv[2] if len(sys.argv) > 2 else None
     data = json.load(open(src)) if src else json.load(sys.stdin)
-    inventory = json.load(open(inv_path)) if inv_path else DEFAULT_INVENTORY
+    inventory = load_inventory(inv_path) if inv_path else DEFAULT_INVENTORY
     watch = inventory.get("watch", DEFAULT_INVENTORY["watch"])
     for item in data.get("items", []):
         classify(item, watch)

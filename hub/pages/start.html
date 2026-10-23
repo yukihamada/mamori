@@ -1,0 +1,92 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>参加ガイド — 守 Mamori</title>
+<meta name="description" content="守（Mamori）に参加する会社向けの最初の5分。キーの確認、自社製品との照合、攻撃の共有までを手順で説明します。">
+<meta property="og:title" content="守 Mamori 参加ガイド — 最初の5分">
+<meta property="og:image" content="https://mamori.teai.io/media/mamori-start.jpg">
+<style>
+:root{--bg:#0a0a0a;--surface:#141414;--border:#262626;--text:#ececec;--muted:#9a9a9a;--accent:#10b981;--code:#0f1512}
+@media (prefers-color-scheme: light){:root{--bg:#fafafa;--surface:#fff;--border:#e5e5e5;--text:#141414;--muted:#666;--accent:#047857;--code:#f1f5f3}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;line-height:1.8}
+.wrap{max-width:820px;margin:0 auto;padding:32px 16px 72px}
+a{color:var(--accent)}h1{font-size:30px;margin:.2em 0}h2{font-size:20px;margin:40px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.lead{color:var(--muted)}
+video{width:100%;border-radius:12px;border:1px solid var(--border);background:#000;display:block;margin:16px 0 4px}
+.cap{font-size:12px;color:var(--muted);margin:0 0 8px}
+.step{display:flex;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin:12px 0}
+.n{flex:0 0 32px;height:32px;border-radius:50%;background:var(--accent);color:#000;font-weight:800;display:flex;align-items:center;justify-content:center}
+.step h3{margin:2px 0 6px;font-size:16px}.step p{margin:4px 0;font-size:14px;color:var(--muted)}.step>div{min-width:0;flex:1}
+pre{background:var(--code);border:1px solid var(--border);border-radius:8px;padding:12px 44px 12px 12px;font-size:13px;overflow-x:auto;position:relative;margin:8px 0;white-space:pre}
+pre button{position:absolute;top:6px;right:6px;font-size:11px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:6px;padding:2px 8px;cursor:pointer}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:8px 0}td,th{border-bottom:1px solid var(--border);padding:8px;text-align:left;vertical-align:top}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.note{font-size:13px;color:var(--muted);border-left:3px solid var(--accent);padding-left:12px;margin:12px 0}
+</style></head><body><div class="wrap">
+<p><a href="/">← 守 Mamori ハブ</a> ・ <a href="https://teai.io/mamori">製品ページ</a></p>
+<h1>参加ガイド — キーが届いたら最初の5分</h1>
+<p class="lead">守（まもり）に参加する会社の担当者向けです。セキュリティの専任がいなくても、ここに書いた順番で始められます。</p>
+
+<!-- 動画は制作中。公開後に <video> をここに差し込む（/media/mamori-start.mp4 配線済み） -->
+
+<h2>必要なもの</h2>
+<p>MacかLinuxのパソコンと「ターミナル」（文字で命令を打つアプリ。WindowsはWSL）／Python 3.9以上／curl。追加のソフトは要りません。Macで初めて python3 を使うときは「コマンドライン・デベロッパ・ツール」を入れる案内が出るので、そのまま入れてください。</p>
+
+<h2>手順</h2>
+<div class="step"><div class="n">0</div><div><h3>見るだけなら登録不要</h3>
+<p>いま出ている脅威の一覧は誰でも読めます → <a href="/intel">最新の脅威を見る</a></p></div></div>
+
+<div class="step"><div class="n">1</div><div><h3>専用キーを受け取る</h3>
+<p><a href="https://teai.io/contact">お問い合わせフォーム</a>に「Mamori参加希望・会社名・担当者の連絡先」を書いて送ると、運営から御社専用のキーが届きます（ベータ期間中は無料。原則当日、遅くとも24時間以内）。</p>
+<p>キーはパスワードと同じです。パスワード管理ソフトに保管し、ほかの会社や公開の場所（チャット・コード）に貼らないでください。</p></div></div>
+
+<div class="step"><div class="n">2</div><div><h3>照合キットを取り出す</h3>
+<pre><code>cd ~
+curl -sL https://mamori.teai.io/kit.tar.gz | tar xz
+cd mamori</code></pre>
+<p>ホームフォルダに <code>mamori</code> というフォルダができます。</p></div></div>
+
+<div class="step"><div class="n">3</div><div><h3>キーが使えるか確かめる</h3>
+<pre><code>export MAMORI_KEY='受け取ったキー'
+bash tools/check-key.sh</code></pre>
+<p><code>"ok": true</code> と出れば準備完了です。<code>"ok": false</code> のときはキーの写し間違いを確認し、それでもだめなら連絡してください。</p></div></div>
+
+<div class="step"><div class="n">4</div><div><h3>自社の製品を書いて、照合する</h3>
+<pre><code>cp examples/inventory.example.json inventory.json
+open -e inventory.json   # Macの「テキストエディット」で開く（Linuxは nano inventory.json）
+# 社内で使っている製品の英語名を {"name": "WordPress"}, の形で1行ずつ並べる
+bash run.sh</code></pre>
+<p>製品名は<b>英語で、版の数字を付けずに</b>（○ WordPress　× ワードプレス　× WordPress 6.4）。書き方を間違えると、何行目が違うかを日本語で表示します。見本とかっこ・カンマを見比べてください。</p>
+<p>結果は <code>data/reports/</code> にできます。<b>一致が0件でも「安全」という意味ではありません。</b>名前の書き方を確かめ、レポートの「直近7日の新着」にも目を通してください。</p>
+<p>「要対応」は、使っている製品名が一致し、かつすでに攻撃に使われている（CISA）か、急ぎの注意喚起（JPCERT/CC）が出ているもの。「要確認」は名前だけ一致したものです。</p>
+<p><b>要対応が出たら：</b>レポートの手順の下書きを読み、自社のバージョンが対象か確かめて、対象なら更新してください。守は設定を勝手に変えません。</p>
+<p>毎朝9時に自動で動かす例（<code>crontab -e</code> に1行）:</p>
+<pre><code>0 9 * * * cd ~/mamori &amp;&amp; bash run.sh &gt;&gt; data/cron.log 2&gt;&amp;1</code></pre></div></div>
+
+<div class="step"><div class="n">5</div><div><h3>攻撃を見つけたら共有する</h3>
+<pre><code>bash tools/share.sh "wp-login.php への総当たり" 412 GREEN</code></pre>
+<p>ターミナルを開き直したときは、先に <code>export MAMORI_KEY='受け取ったキー'</code> をもう一度実行してください。</p>
+<p>「何を」「何回」「どの範囲に」の3つだけです。共有する範囲は信号の色（TLP）で選びます。<b>迷ったら緑（GREEN）</b>。</p>
+<table>
+<tr><th>色</th><th>見られる人</th></tr>
+<tr><td><span class="dot" style="background:#e5e5e5;border:1px solid #999"></span>白 CLEAR</td><td>誰でも（公開）</td></tr>
+<tr><td><span class="dot" style="background:#10b981"></span>緑 GREEN</td><td>参加している会社</td></tr>
+<tr><td><span class="dot" style="background:#f59e0b"></span>黄 AMBER</td><td>運営が確認した一部の会社だけ</td></tr>
+<tr><td><span class="dot" style="background:#ef4444"></span>赤 RED</td><td>送れません（ハブが受け付けません）</td></tr>
+</table>
+<p class="note">ハブはIPアドレス（IPv4）の末尾を伏せ、メールアドレスらしき文字を消し、時刻を1時間単位にし、会社名の代わりに記号を付けて保存します。<b>IPv6アドレス・自社のドメイン・社内のサーバー名・人の名前は、送る前にご自身で消してください。</b>観測は90日で自動削除されます。</p></div></div>
+
+<h2>困ったとき</h2>
+<ul>
+<li><b>キーをなくした・漏れたかもしれない</b> → すぐに<a href="https://teai.io/contact">お問い合わせ</a>へ。24時間以内に止めて、新しいキーを出します。</li>
+<li><b>やめたい</b> → 同じくお問い合わせへ。7日以内にキーを止め、御社の共有データを削除します。</li>
+<li>決まりごと：<a href="/terms">利用規約・データの取り扱い</a> ／ <a href="/docs/keys">キー管理の手順</a></li>
+</ul>
+<p class="note">照合は製品の名前で行います。バージョンまでは見ないので、最後の判断は御社でお願いします。対象外と判定されたもの（関係なし）はレポートに載りません。</p>
+
+
+<p class="cap">何をするものか・どう使うか（約2分）</p>
+</div>
+<script>
+document.querySelectorAll('pre').forEach(function(p){var b=document.createElement('button');b.textContent='コピー';b.onclick=function(){var t=p.querySelector('code').innerText;navigator.clipboard&&navigator.clipboard.writeText(t).then(function(){b.textContent='コピー済み';setTimeout(function(){b.textContent='コピー'},1500)})};p.appendChild(b)});
+</script>
+</body></html>
