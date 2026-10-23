@@ -1,6 +1,6 @@
 {
-  "fetched_at": "2026-10-22T03:32:12.165499+00:00",
-  "count": 39,
+  "fetched_at": "2026-10-23T00:28:29.556623+00:00",
+  "count": 33,
   "items": [
     {
       "id": "CVE-2026-106931",
@@ -159,10 +159,8 @@
       "due_date": "2026-10-18",
       "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines.",
       "match": {
-        "status": "relevant",
-        "hits": [
-          "atlassian"
-        ]
+        "status": "not-relevant",
+        "hits": []
       }
     },
     {
@@ -297,10 +295,8 @@
       "due_date": "2026-10-11",
       "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines.",
       "match": {
-        "status": "relevant",
-        "hits": [
-          "apache"
-        ]
+        "status": "not-relevant",
+        "hits": []
       }
     },
     {
@@ -316,10 +312,8 @@
       "due_date": "2026-10-11",
       "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines.",
       "match": {
-        "status": "relevant",
-        "hits": [
-          "strapi"
-        ]
+        "status": "not-relevant",
+        "hits": []
       }
     },
     {
@@ -335,10 +329,8 @@
       "due_date": "2026-10-11",
       "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines.",
       "match": {
-        "status": "relevant",
-        "hits": [
-          "onlyoffice"
-        ]
+        "status": "not-relevant",
+        "hits": []
       }
     },
     {
@@ -353,6 +345,130 @@
       ],
       "due_date": "2026-10-11",
       "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines.",
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "id": "jpcert-at260033",
+      "title": "PHPにおける複数の脆弱性（CVE-2026-109618、CVE-2026-109619）に関する注意喚起 (公開)",
+      "url": "https://www.jpcert.or.jp/at/2026/at260033.html",
+      "published": "2026-10-22",
+      "source": "jpcert_alert",
+      "severity": "alert",
+      "products": [],
+      "cves": [
+        "CVE-2026-109618",
+        "CVE-2026-109619"
+      ],
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "id": "jpcert-at260032",
+      "title": "SiteGuard Server EditionにおけるOSコマンドインジェクションの脆弱性（CVE-2026-106931）に関する注意喚起 (公開)",
+      "url": "https://www.jpcert.or.jp/at/2026/at260032.html",
+      "published": "2026-10-14",
+      "source": "jpcert_alert",
+      "severity": "alert",
+      "products": [],
+      "cves": [
+        "CVE-2026-106931"
+      ],
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "id": "jpcert-at260031",
+      "title": "2026年10月マイクロソフトセキュリティ更新プログラムに関する注意喚起 (公開)",
+      "url": "https://www.jpcert.or.jp/at/2026/at260031.html",
+      "published": "2026-10-14",
+      "source": "jpcert_alert",
+      "severity": "alert",
+      "products": [],
+      "cves": [],
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "id": "jpcert-at260030",
+      "title": "直近で相次いでいる国内組織における不正アクセスに関する注意喚起 (更新)",
+      "url": "https://www.jpcert.or.jp/at/2026/at260030.html",
+      "published": "2026-10-09",
+      "source": "jpcert_alert",
+      "severity": "alert",
+      "products": [],
+      "cves": [],
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "id": "jpcert-at260029",
+      "title": "NetScaler ADCおよびNetScaler Gatewayにおける複数の脆弱性（CVE-2026-88771、CVE-2026-88772等）に関する注意喚起 (更新)",
+      "url": "https://www.jpcert.or.jp/at/2026/at260029.html",
+      "published": "2026-10-02",
+      "source": "jpcert_alert",
+      "severity": "alert",
+      "products": [],
+      "cves": [
+        "CVE-2026-88771",
+        "CVE-2026-88772"
+      ],
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "id": "jpcert-at260028",
+      "title": "F5 BIG-IP Access Policy Managerにおけるヒープベースのバッファオーバーフローの脆弱性（CVE-2026-94127）に関する注意喚起 (公開)",
+      "url": "https://www.jpcert.or.jp/at/2026/at260028.html",
+      "published": "2026-09-24",
+      "source": "jpcert_alert",
+      "severity": "alert",
+      "products": [],
+      "cves": [
+        "CVE-2026-94127"
+      ],
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "id": "jpcert-at260027",
+      "title": "Cisco Secure Email GatewayにおけるSQLインジェクションの脆弱性（CVE-2026-76461）に関する注意喚起 (公開)",
+      "url": "https://www.jpcert.or.jp/at/2026/at260027.html",
+      "published": "2026-09-15",
+      "source": "jpcert_alert",
+      "severity": "alert",
+      "products": [],
+      "cves": [
+        "CVE-2026-76461"
+      ],
+      "match": {
+        "status": "not-relevant",
+        "hits": []
+      }
+    },
+    {
+      "id": "jpcert-at260026",
+      "title": "Adobe AcrobatおよびReaderの脆弱性（APSB26-141）に関する注意喚起 (公開)",
+      "url": "https://www.jpcert.or.jp/at/2026/at260026.html",
+      "published": "2026-09-09",
+      "source": "jpcert_alert",
+      "severity": "alert",
+      "products": [],
+      "cves": [],
       "match": {
         "status": "not-relevant",
         "hits": []
@@ -411,191 +527,9 @@
       }
     },
     {
-      "id": "jpcert-weekly-2026-09-16",
-      "title": "Weekly Report 2026-09-16号",
-      "url": "https://www.jpcert.or.jp/wr/2026/wr260916.html",
-      "published": "2026-09-16",
-      "source": "jpcert",
-      "severity": "info",
-      "products": [],
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "id": "jpcert-weekly-2026-09-09",
-      "title": "Weekly Report 2026-09-09号",
-      "url": "https://www.jpcert.or.jp/wr/2026/wr260909.html",
-      "published": "2026-09-09",
-      "source": "jpcert",
-      "severity": "info",
-      "products": [],
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "id": "jpcert-weekly-2026-09-02",
-      "title": "Weekly Report 2026-09-02号",
-      "url": "https://www.jpcert.or.jp/wr/2026/wr260902.html",
-      "published": "2026-09-02",
-      "source": "jpcert",
-      "severity": "info",
-      "products": [],
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "id": "jpcert-weekly-2026-08-26",
-      "title": "Weekly Report 2026-08-26号",
-      "url": "https://www.jpcert.or.jp/wr/2026/wr260826.html",
-      "published": "2026-08-26",
-      "source": "jpcert",
-      "severity": "info",
-      "products": [],
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "id": "jpcert-weekly-2026-08-19",
-      "title": "Weekly Report 2026-08-19号",
-      "url": "https://www.jpcert.or.jp/wr/2026/wr260819.html",
-      "published": "2026-08-19",
-      "source": "jpcert",
-      "severity": "info",
-      "products": [],
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "id": "jpcert-weekly-2026-08-13",
-      "title": "Weekly Report 2026-08-13号",
-      "url": "https://www.jpcert.or.jp/wr/2026/wr260813.html",
-      "published": "2026-08-13",
-      "source": "jpcert",
-      "severity": "info",
-      "products": [],
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "id": "jpcert-ics-ics-form",
-      "title": "[ICS/OT] 制御システムインシデントの報告",
-      "url": "https://www.jpcert.or.jp/ics/ics-form.html",
-      "published": "",
-      "source": "jpcert_ics",
-      "severity": "info",
-      "products": [],
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "id": "jpcert-ics-ics-conference",
-      "title": "[ICS/OT] 制御システムセキュリティカンファレンス",
-      "url": "https://www.jpcert.or.jp/ics/ics-conference.html",
-      "published": "",
-      "source": "jpcert_ics",
-      "severity": "info",
-      "products": [],
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "id": "jpcert-ics-information07",
-      "title": "[ICS/OT] 標準から学ぶICSセキュリティ",
-      "url": "https://www.jpcert.or.jp/ics/information07.html",
-      "published": "",
-      "source": "jpcert_ics",
-      "severity": "info",
-      "products": [],
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "id": "jpcert-ics-sirt-for-ics_guide",
-      "title": "[ICS/OT] 「制御系SIRTの機能を備えるための手引き」（CSIRTマテリアル補完資料）",
-      "url": "https://www.jpcert.or.jp/ics/sirt-for-ics_guide.html",
-      "published": "",
-      "source": "jpcert_ics",
-      "severity": "info",
-      "products": [],
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "id": "jpcert-ics-information06",
-      "title": "[ICS/OT] 工場における産業用IoT導入のためのセキュリティ ファーストステップ",
-      "url": "https://www.jpcert.or.jp/ics/information06.html",
-      "published": "",
-      "source": "jpcert_ics",
-      "severity": "info",
-      "products": [],
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "id": "jpcert-ics-ics-sirt-survey",
-      "title": "[ICS/OT] 産業制御システムを対象としたSIRT（制御系SIRT）の実態に関する調査報告書 - 一般製造業 -",
-      "url": "https://www.jpcert.or.jp/ics/ics-sirt-survey.html",
-      "published": "",
-      "source": "jpcert_ics",
-      "severity": "info",
-      "products": [],
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "id": "jpcert-ics-ssat",
-      "title": "[ICS/OT] 日本版SSAT(SCADA Self Assessment Tool)",
-      "url": "https://www.jpcert.or.jp/ics/ssat.html",
-      "published": "",
-      "source": "jpcert_ics",
-      "severity": "info",
-      "products": [],
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "id": "jpcert-ics-jclics",
-      "title": "[ICS/OT] J-CLICS STEP1／STEP2（ICSセキュリティ自己評価ツール）",
-      "url": "https://www.jpcert.or.jp/ics/jclics.html",
-      "published": "",
-      "source": "jpcert_ics",
-      "severity": "info",
-      "products": [],
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "id": "jpcert-ics-jclics-attack-path-countermeasures",
-      "title": "[ICS/OT] J-CLICS 攻撃経路対策編（ICSセキュリティ自己評価ツール）",
-      "url": "https://www.jpcert.or.jp/ics/jclics-attack-path-countermeasures.html",
+      "id": "jpcert-ics-portal",
+      "title": "[ICS/OT] JPCERT/CC 制御システムセキュリティ情報（製造業・OT向け）",
+      "url": "https://www.jpcert.or.jp/ics/",
       "published": "",
       "source": "jpcert_ics",
       "severity": "info",
@@ -608,8 +542,8 @@
   ],
   "errors": [],
   "summary": {
-    "total": 39,
-    "relevant": 8,
+    "total": 33,
+    "relevant": 4,
     "maybe": 0
   }
 }

@@ -1,572 +1,404 @@
 {
-  "type": "mamori-intel-bundle",
-  "spec_version": "0.4",
-  "id": "bundle--b50a7cdc5605f9fe7c762977f8812d6d",
-  "created": "2026-10-22T03:32:12.270226+00:00",
-  "org": "enabler",
-  "tlp": "CLEAR",
-  "objects": [
+  "fetched_at": "2026-10-23T00:28:29.556623+00:00",
+  "count": 33,
+  "items": [
     {
-      "type": "advisory",
       "id": "CVE-2026-106931",
-      "source": "cisa_kev",
-      "severity": "exploited-in-the-wild",
       "title": "EG Secure Solutions SiteGuard Server Edition: EG Secure Solutions SiteGuard Server Edition OS Command Injection Vulnerability",
       "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-106931",
       "published": "2026-10-20",
-      "due_date": "2026-10-23",
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "CVE-2026-96656",
       "source": "cisa_kev",
       "severity": "exploited-in-the-wild",
+      "products": [
+        "EG Secure Solutions SiteGuard Server Edition"
+      ],
+      "due_date": "2026-10-23",
+      "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines."
+    },
+    {
+      "id": "CVE-2026-96656",
       "title": "Plex Media Server: Plex Media Server External Control of File Name or Path Vulnerability",
       "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-96656",
       "published": "2026-10-20",
-      "due_date": "2026-10-23",
-      "match": {
-        "status": "relevant",
-        "hits": [
-          "plex"
-        ]
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "CVE-2026-96655",
       "source": "cisa_kev",
       "severity": "exploited-in-the-wild",
+      "products": [
+        "Plex Media Server"
+      ],
+      "due_date": "2026-10-23",
+      "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines."
+    },
+    {
+      "id": "CVE-2026-96655",
       "title": "Plex Media Server: Plex Media Server Server-Side Request Forgery (SSRF) Vulnerability",
       "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-96655",
       "published": "2026-10-20",
-      "due_date": "2026-11-03",
-      "match": {
-        "status": "relevant",
-        "hits": [
-          "plex"
-        ]
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "CVE-2026-96654",
       "source": "cisa_kev",
       "severity": "exploited-in-the-wild",
+      "products": [
+        "Plex Media Server"
+      ],
+      "due_date": "2026-11-03",
+      "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines."
+    },
+    {
+      "id": "CVE-2026-96654",
       "title": "Plex Media Server: Plex Media Server Improper Neutralization of Encoded URI Schemes in a Web Page Vulnerability",
       "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-96654",
       "published": "2026-10-20",
-      "due_date": "2026-10-23",
-      "match": {
-        "status": "relevant",
-        "hits": [
-          "plex"
-        ]
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "CVE-2026-96652",
       "source": "cisa_kev",
       "severity": "exploited-in-the-wild",
+      "products": [
+        "Plex Media Server"
+      ],
+      "due_date": "2026-10-23",
+      "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines."
+    },
+    {
+      "id": "CVE-2026-96652",
       "title": "Plex Media Server: Plex Media Server Server-Side Request Forgery (SSRF) Vulnerability",
       "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-96652",
       "published": "2026-10-20",
-      "due_date": "2026-11-03",
-      "match": {
-        "status": "relevant",
-        "hits": [
-          "plex"
-        ]
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "CVE-2026-110936",
       "source": "cisa_kev",
       "severity": "exploited-in-the-wild",
+      "products": [
+        "Plex Media Server"
+      ],
+      "due_date": "2026-11-03",
+      "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines."
+    },
+    {
+      "id": "CVE-2026-110936",
       "title": "Siemens Software Center: Siemens Software Center Uncontrolled Search Path Element Vulnerability",
       "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-110936",
       "published": "2026-10-20",
-      "due_date": "2026-11-03",
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "CVE-2026-102764",
       "source": "cisa_kev",
       "severity": "exploited-in-the-wild",
+      "products": [
+        "Siemens Software Center"
+      ],
+      "due_date": "2026-11-03",
+      "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines."
+    },
+    {
+      "id": "CVE-2026-102764",
       "title": "BeyondTrust Remote Support: BeyondTrust Remote Support Authentication Bypass by Spoofing Vulnerability",
       "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-102764",
       "published": "2026-10-16",
-      "due_date": "2026-10-19",
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "CVE-2025-61624",
       "source": "cisa_kev",
       "severity": "exploited-in-the-wild",
+      "products": [
+        "BeyondTrust Remote Support"
+      ],
+      "due_date": "2026-10-19",
+      "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines."
+    },
+    {
+      "id": "CVE-2025-61624",
       "title": "Fortinet Multiple Products: Fortinet Multiple Products Path Traversal Vulnerability",
       "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-61624",
       "published": "2026-10-16",
-      "due_date": "2026-10-19",
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "CVE-2026-21589",
       "source": "cisa_kev",
       "severity": "exploited-in-the-wild",
+      "products": [
+        "Fortinet Multiple Products"
+      ],
+      "due_date": "2026-10-19",
+      "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines."
+    },
+    {
+      "id": "CVE-2026-21589",
       "title": "Atlassian Multiple Products: Atlassian Multiple Products Files or Directories Accessible to External Parties Vulnerability",
       "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-21589",
       "published": "2026-10-15",
-      "due_date": "2026-10-18",
-      "match": {
-        "status": "relevant",
-        "hits": [
-          "atlassian"
-        ]
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "CVE-2026-105134",
       "source": "cisa_kev",
       "severity": "exploited-in-the-wild",
+      "products": [
+        "Atlassian Multiple Products"
+      ],
+      "due_date": "2026-10-18",
+      "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines."
+    },
+    {
+      "id": "CVE-2026-105134",
       "title": "Ahsay AhsayCBS: Ahsay AhsayCBS Command Injection Vulnerability",
       "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-105134",
       "published": "2026-10-14",
-      "due_date": "2026-10-17",
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "CVE-2026-76519",
       "source": "cisa_kev",
       "severity": "exploited-in-the-wild",
+      "products": [
+        "Ahsay AhsayCBS"
+      ],
+      "due_date": "2026-10-17",
+      "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines."
+    },
+    {
+      "id": "CVE-2026-76519",
       "title": "Cisco Secure Email Gateway: Cisco Secure Email Gateway Relative Path Traversal Vulnerability",
       "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-76519",
       "published": "2026-10-14",
-      "due_date": "2026-10-17",
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "CVE-2026-105133",
       "source": "cisa_kev",
       "severity": "exploited-in-the-wild",
+      "products": [
+        "Cisco Secure Email Gateway"
+      ],
+      "due_date": "2026-10-17",
+      "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines."
+    },
+    {
+      "id": "CVE-2026-105133",
       "title": "Ahsay AhsayCBS: Ahsay AhsayCBS Improper Authentication Vulnerability",
       "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-105133",
       "published": "2026-10-14",
-      "due_date": "2026-10-17",
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "CVE-2026-0322",
       "source": "cisa_kev",
       "severity": "exploited-in-the-wild",
+      "products": [
+        "Ahsay AhsayCBS"
+      ],
+      "due_date": "2026-10-17",
+      "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines."
+    },
+    {
+      "id": "CVE-2026-0322",
       "title": "Palo Alto Networks PAN-OS: Palo Alto Networks PAN-OS Code Injection Vulnerability",
       "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-0322",
       "published": "2026-10-14",
-      "due_date": "2026-10-17",
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "CVE-2026-104935",
       "source": "cisa_kev",
       "severity": "exploited-in-the-wild",
+      "products": [
+        "Palo Alto Networks PAN-OS"
+      ],
+      "due_date": "2026-10-17",
+      "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines."
+    },
+    {
+      "id": "CVE-2026-104935",
       "title": "Ivanti Connect Secure: Ivanti Connect Secure Authentication Bypass by Spoofing Vulnerability",
       "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-104935",
       "published": "2026-10-13",
-      "due_date": "2026-10-16",
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "CVE-2026-96951",
       "source": "cisa_kev",
       "severity": "exploited-in-the-wild",
+      "products": [
+        "Ivanti Connect Secure"
+      ],
+      "due_date": "2026-10-16",
+      "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines."
+    },
+    {
+      "id": "CVE-2026-96951",
       "title": "Microsoft Windows: Microsoft Windows Command Injection Vulnerability",
       "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-96951",
       "published": "2026-10-13",
-      "due_date": "2026-10-16",
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "CVE-2015-5477",
       "source": "cisa_kev",
       "severity": "exploited-in-the-wild",
+      "products": [
+        "Microsoft Windows"
+      ],
+      "due_date": "2026-10-16",
+      "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines."
+    },
+    {
+      "id": "CVE-2015-5477",
       "title": "ISC BIND:  ISC BIND Data Processing Errors Vulnerability",
       "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-5477",
       "published": "2026-10-08",
-      "due_date": "2026-10-11",
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "CVE-2016-3081",
       "source": "cisa_kev",
       "severity": "exploited-in-the-wild",
+      "products": [
+        "ISC BIND"
+      ],
+      "due_date": "2026-10-11",
+      "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines."
+    },
+    {
+      "id": "CVE-2016-3081",
       "title": "Apache Struts: Apache Struts Command Injection Vulnerability",
       "url": "https://nvd.nist.gov/vuln/detail/CVE-2016-3081",
       "published": "2026-10-08",
-      "due_date": "2026-10-11",
-      "match": {
-        "status": "relevant",
-        "hits": [
-          "apache"
-        ]
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "CVE-2023-22894",
       "source": "cisa_kev",
       "severity": "exploited-in-the-wild",
+      "products": [
+        "Apache Struts"
+      ],
+      "due_date": "2026-10-11",
+      "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines."
+    },
+    {
+      "id": "CVE-2023-22894",
       "title": "Strapi Strapi: Strapi Cleartext Storage of Sensitive Information Vulnerability",
       "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-22894",
       "published": "2026-10-08",
-      "due_date": "2026-10-11",
-      "match": {
-        "status": "relevant",
-        "hits": [
-          "strapi"
-        ]
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "CVE-2021-3199",
       "source": "cisa_kev",
       "severity": "exploited-in-the-wild",
+      "products": [
+        "Strapi Strapi"
+      ],
+      "due_date": "2026-10-11",
+      "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines."
+    },
+    {
+      "id": "CVE-2021-3199",
       "title": "ONLYOFFICE Docs: ONLYOFFICE Docs Server Path Traversal Vulnerability",
       "url": "https://nvd.nist.gov/vuln/detail/CVE-2021-3199",
       "published": "2026-10-08",
-      "due_date": "2026-10-11",
-      "match": {
-        "status": "relevant",
-        "hits": [
-          "onlyoffice"
-        ]
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "CVE-2015-3306",
       "source": "cisa_kev",
       "severity": "exploited-in-the-wild",
+      "products": [
+        "ONLYOFFICE Docs"
+      ],
+      "due_date": "2026-10-11",
+      "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines."
+    },
+    {
+      "id": "CVE-2015-3306",
       "title": "ProFTPD ProFTPD: ProFTPD Improper Access Control Vulnerability",
       "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-3306",
       "published": "2026-10-08",
+      "source": "cisa_kev",
+      "severity": "exploited-in-the-wild",
+      "products": [
+        "ProFTPD ProFTPD"
+      ],
       "due_date": "2026-10-11",
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
+      "required_action": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines."
     },
     {
-      "type": "advisory",
+      "id": "jpcert-at260033",
+      "title": "PHPにおける複数の脆弱性（CVE-2026-109618、CVE-2026-109619）に関する注意喚起 (公開)",
+      "url": "https://www.jpcert.or.jp/at/2026/at260033.html",
+      "published": "2026-10-22",
+      "source": "jpcert_alert",
+      "severity": "alert",
+      "products": [],
+      "cves": [
+        "CVE-2026-109618",
+        "CVE-2026-109619"
+      ]
+    },
+    {
+      "id": "jpcert-at260032",
+      "title": "SiteGuard Server EditionにおけるOSコマンドインジェクションの脆弱性（CVE-2026-106931）に関する注意喚起 (公開)",
+      "url": "https://www.jpcert.or.jp/at/2026/at260032.html",
+      "published": "2026-10-14",
+      "source": "jpcert_alert",
+      "severity": "alert",
+      "products": [],
+      "cves": [
+        "CVE-2026-106931"
+      ]
+    },
+    {
+      "id": "jpcert-at260031",
+      "title": "2026年10月マイクロソフトセキュリティ更新プログラムに関する注意喚起 (公開)",
+      "url": "https://www.jpcert.or.jp/at/2026/at260031.html",
+      "published": "2026-10-14",
+      "source": "jpcert_alert",
+      "severity": "alert",
+      "products": [],
+      "cves": []
+    },
+    {
+      "id": "jpcert-at260030",
+      "title": "直近で相次いでいる国内組織における不正アクセスに関する注意喚起 (更新)",
+      "url": "https://www.jpcert.or.jp/at/2026/at260030.html",
+      "published": "2026-10-09",
+      "source": "jpcert_alert",
+      "severity": "alert",
+      "products": [],
+      "cves": []
+    },
+    {
+      "id": "jpcert-at260029",
+      "title": "NetScaler ADCおよびNetScaler Gatewayにおける複数の脆弱性（CVE-2026-88771、CVE-2026-88772等）に関する注意喚起 (更新)",
+      "url": "https://www.jpcert.or.jp/at/2026/at260029.html",
+      "published": "2026-10-02",
+      "source": "jpcert_alert",
+      "severity": "alert",
+      "products": [],
+      "cves": [
+        "CVE-2026-88771",
+        "CVE-2026-88772"
+      ]
+    },
+    {
+      "id": "jpcert-at260028",
+      "title": "F5 BIG-IP Access Policy Managerにおけるヒープベースのバッファオーバーフローの脆弱性（CVE-2026-94127）に関する注意喚起 (公開)",
+      "url": "https://www.jpcert.or.jp/at/2026/at260028.html",
+      "published": "2026-09-24",
+      "source": "jpcert_alert",
+      "severity": "alert",
+      "products": [],
+      "cves": [
+        "CVE-2026-94127"
+      ]
+    },
+    {
+      "id": "jpcert-at260027",
+      "title": "Cisco Secure Email GatewayにおけるSQLインジェクションの脆弱性（CVE-2026-76461）に関する注意喚起 (公開)",
+      "url": "https://www.jpcert.or.jp/at/2026/at260027.html",
+      "published": "2026-09-15",
+      "source": "jpcert_alert",
+      "severity": "alert",
+      "products": [],
+      "cves": [
+        "CVE-2026-76461"
+      ]
+    },
+    {
+      "id": "jpcert-at260026",
+      "title": "Adobe AcrobatおよびReaderの脆弱性（APSB26-141）に関する注意喚起 (公開)",
+      "url": "https://www.jpcert.or.jp/at/2026/at260026.html",
+      "published": "2026-09-09",
+      "source": "jpcert_alert",
+      "severity": "alert",
+      "products": [],
+      "cves": []
+    },
+    {
       "id": "jpcert-weekly-2026-10-21",
-      "source": "jpcert",
-      "severity": "info",
       "title": "Weekly Report 2026-10-21号",
       "url": "https://www.jpcert.or.jp/wr/2026/wr261021.html",
       "published": "2026-10-21",
-      "due_date": null,
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "jpcert-weekly-2026-10-15",
       "source": "jpcert",
       "severity": "info",
+      "products": []
+    },
+    {
+      "id": "jpcert-weekly-2026-10-15",
       "title": "Weekly Report 2026-10-15号",
       "url": "https://www.jpcert.or.jp/wr/2026/wr261015.html",
       "published": "2026-10-15",
-      "due_date": null,
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "jpcert-weekly-2026-10-07",
       "source": "jpcert",
       "severity": "info",
+      "products": []
+    },
+    {
+      "id": "jpcert-weekly-2026-10-07",
       "title": "Weekly Report 2026-10-07号",
       "url": "https://www.jpcert.or.jp/wr/2026/wr261007.html",
       "published": "2026-10-07",
-      "due_date": null,
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "jpcert-weekly-2026-09-30",
       "source": "jpcert",
       "severity": "info",
+      "products": []
+    },
+    {
+      "id": "jpcert-weekly-2026-09-30",
       "title": "Weekly Report 2026-09-30号",
       "url": "https://www.jpcert.or.jp/wr/2026/wr260930.html",
       "published": "2026-09-30",
-      "due_date": null,
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "jpcert-weekly-2026-09-16",
       "source": "jpcert",
       "severity": "info",
-      "title": "Weekly Report 2026-09-16号",
-      "url": "https://www.jpcert.or.jp/wr/2026/wr260916.html",
-      "published": "2026-09-16",
-      "due_date": null,
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
+      "products": []
     },
     {
-      "type": "advisory",
-      "id": "jpcert-weekly-2026-09-09",
-      "source": "jpcert",
-      "severity": "info",
-      "title": "Weekly Report 2026-09-09号",
-      "url": "https://www.jpcert.or.jp/wr/2026/wr260909.html",
-      "published": "2026-09-09",
-      "due_date": null,
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "jpcert-weekly-2026-09-02",
-      "source": "jpcert",
-      "severity": "info",
-      "title": "Weekly Report 2026-09-02号",
-      "url": "https://www.jpcert.or.jp/wr/2026/wr260902.html",
-      "published": "2026-09-02",
-      "due_date": null,
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "jpcert-weekly-2026-08-26",
-      "source": "jpcert",
-      "severity": "info",
-      "title": "Weekly Report 2026-08-26号",
-      "url": "https://www.jpcert.or.jp/wr/2026/wr260826.html",
-      "published": "2026-08-26",
-      "due_date": null,
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "jpcert-weekly-2026-08-19",
-      "source": "jpcert",
-      "severity": "info",
-      "title": "Weekly Report 2026-08-19号",
-      "url": "https://www.jpcert.or.jp/wr/2026/wr260819.html",
-      "published": "2026-08-19",
-      "due_date": null,
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "jpcert-weekly-2026-08-13",
-      "source": "jpcert",
-      "severity": "info",
-      "title": "Weekly Report 2026-08-13号",
-      "url": "https://www.jpcert.or.jp/wr/2026/wr260813.html",
-      "published": "2026-08-13",
-      "due_date": null,
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "jpcert-ics-ics-form",
+      "id": "jpcert-ics-portal",
+      "title": "[ICS/OT] JPCERT/CC 制御システムセキュリティ情報（製造業・OT向け）",
+      "url": "https://www.jpcert.or.jp/ics/",
+      "published": "",
       "source": "jpcert_ics",
       "severity": "info",
-      "title": "[ICS/OT] 制御システムインシデントの報告",
-      "url": "https://www.jpcert.or.jp/ics/ics-form.html",
-      "published": "",
-      "due_date": null,
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "jpcert-ics-ics-conference",
-      "source": "jpcert_ics",
-      "severity": "info",
-      "title": "[ICS/OT] 制御システムセキュリティカンファレンス",
-      "url": "https://www.jpcert.or.jp/ics/ics-conference.html",
-      "published": "",
-      "due_date": null,
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "jpcert-ics-information07",
-      "source": "jpcert_ics",
-      "severity": "info",
-      "title": "[ICS/OT] 標準から学ぶICSセキュリティ",
-      "url": "https://www.jpcert.or.jp/ics/information07.html",
-      "published": "",
-      "due_date": null,
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "jpcert-ics-sirt-for-ics_guide",
-      "source": "jpcert_ics",
-      "severity": "info",
-      "title": "[ICS/OT] 「制御系SIRTの機能を備えるための手引き」（CSIRTマテリアル補完資料）",
-      "url": "https://www.jpcert.or.jp/ics/sirt-for-ics_guide.html",
-      "published": "",
-      "due_date": null,
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "jpcert-ics-information06",
-      "source": "jpcert_ics",
-      "severity": "info",
-      "title": "[ICS/OT] 工場における産業用IoT導入のためのセキュリティ ファーストステップ",
-      "url": "https://www.jpcert.or.jp/ics/information06.html",
-      "published": "",
-      "due_date": null,
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "jpcert-ics-ics-sirt-survey",
-      "source": "jpcert_ics",
-      "severity": "info",
-      "title": "[ICS/OT] 産業制御システムを対象としたSIRT（制御系SIRT）の実態に関する調査報告書 - 一般製造業 -",
-      "url": "https://www.jpcert.or.jp/ics/ics-sirt-survey.html",
-      "published": "",
-      "due_date": null,
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "jpcert-ics-ssat",
-      "source": "jpcert_ics",
-      "severity": "info",
-      "title": "[ICS/OT] 日本版SSAT(SCADA Self Assessment Tool)",
-      "url": "https://www.jpcert.or.jp/ics/ssat.html",
-      "published": "",
-      "due_date": null,
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "jpcert-ics-jclics",
-      "source": "jpcert_ics",
-      "severity": "info",
-      "title": "[ICS/OT] J-CLICS STEP1／STEP2（ICSセキュリティ自己評価ツール）",
-      "url": "https://www.jpcert.or.jp/ics/jclics.html",
-      "published": "",
-      "due_date": null,
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
-    },
-    {
-      "type": "advisory",
-      "id": "jpcert-ics-jclics-attack-path-countermeasures",
-      "source": "jpcert_ics",
-      "severity": "info",
-      "title": "[ICS/OT] J-CLICS 攻撃経路対策編（ICSセキュリティ自己評価ツール）",
-      "url": "https://www.jpcert.or.jp/ics/jclics-attack-path-countermeasures.html",
-      "published": "",
-      "due_date": null,
-      "match": {
-        "status": "not-relevant",
-        "hits": []
-      }
+      "products": []
     }
-  ]
+  ],
+  "errors": []
 }

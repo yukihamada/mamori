@@ -38,10 +38,9 @@ DEFAULT_INVENTORY = {
         {"name": "openssl", "keywords": ["openssl"]},
         {"name": "chrome", "keywords": ["chrome", "chromium"]},
         {"name": "plex", "keywords": ["plex media server", "plex"]},
-        {"name": "strapi", "keywords": ["strapi"]},
-        {"name": "atlassian", "keywords": ["atlassian", "jira", "confluence"]},
-        {"name": "apache", "keywords": ["apache struts", "apache http"]},
-        {"name": "onlyoffice", "keywords": ["onlyoffice"]},
+        # strapi / atlassian / apache / onlyoffice は 2026-10-23 に実機・
+        # リポジトリを確認したところ使用実績なし。誤検知になるため監視対象外。
+        # 使い始めたら戻すこと。
         # ネットワーク機器・Windowsは現状未使用のため監視対象外。使い始めたら戻す。
     ]
 }
