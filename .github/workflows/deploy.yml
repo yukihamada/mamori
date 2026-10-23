@@ -2,9 +2,6 @@ name: deploy
 on:
   push:
     branches: [main]
-  schedule:
-    # ハブは無アクセス時に停止する。6時間ごとに起こして脅威情報の自動取得を走らせる
-    - cron: "17 */6 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -13,7 +10,6 @@ concurrency:
 
 jobs:
   test:
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,7 +20,6 @@ jobs:
 
   deploy:
     needs: test
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,14 +35,3 @@ jobs:
             [ "$v" = "0.5" ] && echo "live version $v" && exit 0
           done
           echo "version check failed"; exit 1
-
-  wake:
-    if: github.event_name == 'schedule'
-    runs-on: ubuntu-latest
-    steps:
-      - run: |
-          curl -fsS https://mamori.teai.io/healthz
-          sleep 90
-          curl -fsS https://mamori.teai.io/api/refresh-status | tee status.json
-          # 取得に失敗して情報が古いままならジョブを失敗にする
-          python3 -c 'import json;s=json.load(open("status.json"));a=s["bundle_age_hours"];print("age",a);exit(0 if a < 7 else 1)'
