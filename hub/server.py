@@ -127,6 +127,19 @@ STORE = accounts.Store(DATA_DIR / "accounts.json", ORG_SALT)
 PUBLIC_URL = os.environ.get("MAMORI_PUBLIC_URL", "https://mamori.teai.io").rstrip("/")
 COOKIE_FLAGS = "HttpOnly; SameSite=Lax" + ("; Secure" if PUBLIC_URL.startswith("https://") else "")
 
+# --- 期間限定の新規登録 -------------------------------------------------------
+# MAMORI_SIGNUP_UNTIL（epoch秒）までの間だけ、/account/login（メールリンク送信＝新規登録）を
+# 受け付ける。期限切れ後も、既存セッションの鍵管理・発行・停止はそのまま使える。
+SIGNUP_UNTIL = float(os.environ.get("MAMORI_SIGNUP_UNTIL", "0") or 0)
+
+
+def signup_open() -> bool:
+    return SIGNUP_UNTIL <= 0 or time.time() < SIGNUP_UNTIL
+
+
+def signup_deadline_jst() -> str:
+    return time.strftime("%Y-%m-%d %H:%M JST", time.gmtime(SIGNUP_UNTIL + 9 * 3600)) if SIGNUP_UNTIL > 0 else ""
+
 
 def lookup_key(key: str | None) -> dict | None:
     """運営発行のキー（MAMORI_KEYS_JSON）→ セルフサービスのキーの順に探す。"""
@@ -348,6 +361,27 @@ def render_intel() -> bytes:
     html = _page("intel.html").decode()
     html = html.replace("__UPDATED__", _esc(created + " UTC" if created else "—"))
     html = html.replace("__COUNT__", str(len(objs))).replace("__ROWS__", "\n".join(rows))
+    return html.encode()
+
+
+def render_honeypot() -> bytes:
+    """攻撃者が探すパスの見本と最新脅威を載せる公開ページ（実設定は置かない）。"""
+    try:
+        b = json.loads(LATEST_FILE.read_text())
+    except Exception:  # noqa: BLE001
+        b = {"objects": [], "created": ""}
+    objs = [o for o in (b.get("objects") or b.get("items") or []) if o.get("title")]
+    objs.sort(key=lambda o: o.get("published") or "", reverse=True)
+    rows = []
+    for o in objs[:5]:
+        kind, src, _ = SRC_LABEL.get(o.get("source"), ("情報", o.get("source", ""), "gray"))
+        rows.append(f'<tr><td class="d">{_esc(o.get("published") or "—")}</td>'
+                    f'<td class="src">{_esc(kind)} {_esc(src)}</td>'
+                    f'<td><a href="{_esc(o.get("url"))}" rel="noopener" target="_blank">{_esc(o.get("title"))}</a></td></tr>')
+    created = (b.get("created") or "")[:16].replace("T", " ")
+    html = _page("honeypot.html").decode()
+    html = html.replace("__UPDATED__", _esc(created + " UTC" if created else "—"))
+    html = html.replace("__ROWS__", "\n".join(rows) or '<tr><td colspan="3">まだありません</td></tr>')
     return html.encode()
 
 
@@ -1009,6 +1043,8 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, _page("start.html"), "text/html; charset=utf-8")
         elif path == "/intel":
             self._send(200, render_intel(), "text/html; charset=utf-8")
+        elif path in ("/status-page", "/admin", "/server-status"):
+            self._send(200, render_honeypot(), "text/html; charset=utf-8")
         elif path == "/kit.tar.gz":
             if "kit" not in _kit_cache:
                 _kit_cache["kit"] = build_kit()
