@@ -53,7 +53,7 @@ bash tools/check-key.sh</code></pre>
 <div class="step"><div class="n">4</div><div><h3>自社の製品を書いて、照合する</h3>
 <pre><code>cp examples/inventory.example.json inventory.json
 open -e inventory.json   # Macの「テキストエディット」で開く（Linuxは nano inventory.json）
-# 社内で使っている製品の英語名を {"name": "WordPress"}, の形で1行ずつ並べる
+# 見本のうち使っていない製品の行は消し、使っている製品は見本の行をコピーして名前だけ書き換える
 bash run.sh</code></pre>
 <p>製品名は<b>英語で、版の数字を付けずに</b>（○ WordPress　× ワードプレス　× WordPress 6.4）。書き方を間違えると、何行目が違うかを日本語で表示します。見本とかっこ・カンマを見比べてください。</p>
 <p>結果は <code>data/reports/</code> にできます。<b>一致が0件でも「安全」という意味ではありません。</b>名前の書き方を確かめ、レポートの「直近7日の新着」にも目を通してください。</p>

@@ -77,6 +77,11 @@ def test_inventory_messages() -> None:
     kana.write_text(json.dumps({"watch": [{"name": "ワードプレス"}, {"name": "WordPress 6.4"}]}, ensure_ascii=False))
     r = subprocess.run([sys.executable, str(ROOT / "agent" / "match_inventory.py"), str(raw), str(kana)],
                        capture_output=True, text=True)
+    curly = tmp / "curly.json"
+    curly.write_text('{\u201cwatch\u201d: [{\u201cname\u201d: \u201cWordPress\u201d}]}')
+    r2 = subprocess.run([sys.executable, str(ROOT / "agent" / "match_inventory.py"), str(raw), str(curly)],
+                        capture_output=True, text=True)
+    check("inventory: curly quotes accepted", r2.returncode == 0 and json.loads(r2.stdout)["summary"]["maybe"] == 1, r2.stderr)
     check("inventory: warns katakana and versioned names", r.returncode == 0 and r.stderr.count("一致しにくい") == 2, r.stderr)
 
 

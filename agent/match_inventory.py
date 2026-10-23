@@ -72,6 +72,8 @@ def classify(item: dict, watch: list[dict]) -> dict:
 def load_inventory(path: str) -> dict:
     """製品リストを読む。書式の誤りと、照合で一致しにくい名前を日本語で知らせる。"""
     text = open(path, encoding="utf-8").read()
+    # テキストエディット等が自動で変える斜めの引用符を直してから読む
+    text = text.replace("\u201c", '"').replace("\u201d", '"').replace("\u2018", "'").replace("\u2019", "'")
     try:
         inv = json.loads(text)
     except json.JSONDecodeError as e:
@@ -80,7 +82,7 @@ def load_inventory(path: str) -> dict:
             f"✖ {path} の {e.lineno} 行目の書き方が違います（{e.colno} 文字目あたり）。\n"
             f"    {line.strip()}\n"
             "  見本（examples/inventory.example.json）とかっこ・カンマ・\"\" を見比べてください。\n"
-            "  よくある原因: 行の終わりのカンマ忘れ／最後の行の余計なカンマ。\n")
+            "  よくある原因: 行の終わりのカンマ忘れ／最後の行の余計なカンマ／全角の「：」「，」。\n")
         sys.exit(2)
     for w in inv.get("watch", []):
         name = str(w.get("name", ""))
