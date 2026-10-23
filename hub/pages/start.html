@@ -26,7 +26,10 @@ table{width:100%;border-collapse:collapse;font-size:14px;margin:8px 0}td,th{bord
 <h1>参加ガイド — キーが届いたら最初の5分</h1>
 <p class="lead">守（まもり）に参加する会社の担当者向けです。セキュリティの専任がいなくても、ここに書いた順番で始められます。</p>
 
-<!-- 動画は制作中。公開後に <video> をここに差し込む（/media/mamori-start.mp4 配線済み） -->
+<video controls playsinline preload="metadata" poster="/media/mamori-start.jpg" aria-label="参加ガイド動画">
+  <source src="/media/mamori-start.mp4" type="video/mp4">
+</video>
+<p class="cap">参加ガイド動画（約2分10秒）。製品の紹介は<a href="#intro">下の紹介動画</a>へ。</p>
 
 <h2>必要なもの</h2>
 <p>MacかLinuxのパソコンと「ターミナル」（文字で命令を打つアプリ。WindowsはWSL）／Python 3.9以上／curl。追加のソフトは要りません。Macで初めて python3 を使うときは「コマンドライン・デベロッパ・ツール」を入れる案内が出るので、そのまま入れてください。</p>
@@ -89,7 +92,7 @@ bash run.sh</code></pre>
 <p class="note">照合は製品の名前で行います。バージョンまでは見ないので、最後の判断は御社でお願いします。対象外と判定されたもの（関係なし）はレポートに載りません。</p>
 
 
-<p class="cap">何をするものか・どう使うか（約2分）</p>
+<p class="cap">何をするものか・どう使うか（約1分40秒）</p>
 </div>
 <script>
 document.querySelectorAll('pre').forEach(function(p){var b=document.createElement('button');b.textContent='コピー';b.onclick=function(){var t=p.querySelector('code').innerText;navigator.clipboard&&navigator.clipboard.writeText(t).then(function(){b.textContent='コピー済み';setTimeout(function(){b.textContent='コピー'},1500)})};p.appendChild(b)});
