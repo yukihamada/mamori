@@ -9,7 +9,7 @@ COPY examples /app/examples
 COPY docs /app/docs
 COPY media /app/media
 COPY mcp /app/mcp
-COPY run.sh README.md /app/
+COPY run.sh README.md MamoriCheck.zip /app/
 RUN mkdir -p /app/data
 ENV MAMORI_DATA=/app/data MAMORI_APP=/app PORT=8080 PYTHONDONTWRITEBYTECODE=1
 EXPOSE 8080
