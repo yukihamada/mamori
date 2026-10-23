@@ -4,7 +4,7 @@
 set -euo pipefail
 HUB="${MAMORI_HUB:-https://mamori.teai.io}"
 : "${MAMORI_KEY:?MAMORI_KEY に組織専用キーを入れてください}"
-curl -sS "$HUB/api/observations" -H "X-Mamori-Key: $MAMORI_KEY" | python3 -c '
+PY=$(cat <<'PYEOF'
 import json, sys, time
 d = json.load(sys.stdin)
 if "observations" not in d:
@@ -14,5 +14,9 @@ obs = sorted(d["observations"], key=lambda o: o.get("received_at", 0), reverse=T
 print(f"共有された観測 {len(obs)}件（新しい順）")
 for o in obs:
     t = time.strftime("%m-%d %H時", time.localtime(o.get("received_at", 0)))
-    print(f"- {t}  [{color.get(o.get(\"tlp\"), o.get(\"tlp\"))}]  {o.get(\"pattern\", o.get(\"type\"))}  {o.get(\"count\", \"\")}回  (組織 {o.get(\"org_hash\", \"-\")})")
-'
+    tlp = color.get(o.get("tlp"), o.get("tlp"))
+    what = o.get("pattern", o.get("type"))
+    print(f"- {t}  [{tlp}]  {what}  {o.get('count', '')}回  (組織 {o.get('org_hash', '-')})")
+PYEOF
+)
+curl -sS "$HUB/api/observations" -H "X-Mamori-Key: $MAMORI_KEY" | python3 -c "$PY"
