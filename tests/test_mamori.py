@@ -174,7 +174,7 @@ def _wait_port(url: str, tries: int = 30) -> bool:
 def test_hub() -> None:
     print("== Hub server ==")
     with tempfile.TemporaryDirectory() as td:
-        env = dict(os.environ,
+        env = dict(os.environ, MAMORI_ORG_SALT="test-salt",
                    MAMORI_DATA=td,
                    MAMORI_KEYS_JSON='{"k-amber":{"org":"org-a","tlp_max":"AMBER"},'
                                     '"k-clear":{"org":"org-b","tlp_max":"CLEAR"}}',
@@ -264,9 +264,10 @@ def test_hub() -> None:
             code, body = get("/api/whoami")
             check("whoami without key -> 401", code == 401)
             code, body = get("/api/whoami", "k-amber")
-            check("whoami returns sha256 org_hash",
+            import hashlib as _h, hmac as _hm
+            check("whoami returns salted HMAC org_hash",
                   code == 200 and body["org_hash"] ==
-                  __import__("hashlib").sha256(b"mamori-org:org-a").hexdigest()[:10])
+                  _hm.new(b"test-salt", b"mamori-org:org-a", _h.sha256).hexdigest()[:10])
 
             req = urllib.request.Request(base + "/docs/keys")
             with urllib.request.urlopen(req, timeout=5) as r:

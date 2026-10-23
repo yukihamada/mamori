@@ -17,6 +17,7 @@ jobs:
         with: { python-version: "3.12" }
       - run: python3 -m py_compile hub/server.py agent/*.py admin/*.py
       - run: python3 tests/test_v05.py
+      - run: python3 tests/test_mamori.py
 
   deploy:
     needs: test
