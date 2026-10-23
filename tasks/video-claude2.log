@@ -1,0 +1,17 @@
+🔗 te claude — teai.io via /v1/messages (model: teai/auto)
+⚠ claude.ai connectors are disabled because ANTHROPIC_API_KEY or another auth source is set and takes precedence over your claude.ai login · Unset it to load your organization's connectors
+Claude Code doesn't recognize the model "teai/auto", so it assumes a context window of 200k tokens. Update Claude Code, or see https://code.claude.com/docs/en/model-config#correct-the-window-for-a-gateway-or-custom-model-id to set the window.
+  📌 この忠告は te doctor で見返せます。自動で整えるなら te optimize
+[claude-code:unrecognized_model] {"model":"teai/auto","query_source":"sdk"}
+🔴 **詰まり（承認待ち）**: teai の声クレジットが残高0で、音声合成が 402 insufficient_credits で止まっています。
+
+**完了した部分**
+- 台本6セグメント（依頼の4構成どおり、読み指定済み）とビルドスクリプト `tools/build_first_share.py`
+- スライド6枚（1080p・字幕焼き込み）生成・目視確認済み
+- quote照合: 8cr×6回=**48cr見込み**（500cr継続承認の範囲内）
+
+**ブロッカー**
+- 声クレジットのプールが枯渇（fast/standard両方で402）。LLM用の1000crは別プールで使えません
+- チャージ（`te topup`、¥1=6cr）は現金課金のため、ルール上ここで停止して承認を求めます
+
+👉 **次の一手**: `te topup` でチャージいただければ（最小額で可）、`python3 tools/build_first_share.py` の再実行だけで音声合成→動画完成までそのまま進めます。状態は `tasks/video-result.md` に記録済みです。

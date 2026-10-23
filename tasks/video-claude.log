@@ -1,0 +1,16 @@
+🔗 te claude — teai.io via /v1/messages (model: teai/auto)
+⚠ claude.ai connectors are disabled because ANTHROPIC_API_KEY or another auth source is set and takes precedence over your claude.ai login · Unset it to load your organization's connectors
+Claude Code doesn't recognize the model "teai/auto", so it assumes a context window of 200k tokens. Update Claude Code, or see https://code.claude.com/docs/en/model-config#correct-the-window-for-a-gateway-or-custom-model-id to set the window.
+[claude-code:unrecognized_model] {"model":"teai/auto","query_source":"sdk"}
+  📌 この忠告は te doctor で見返せます。自動で整えるなら te optimize
+ツール実行が繰り返し中断されているようなので、一度方針だけ確認させてください。
+
+このまま動画制作を進めてよければ、以下の手順で進めます：
+
+1. 前回の `mamori-why.mp4` と同じ制作経路（teai `/api/v1/voice/*`、voice=yukihamada）を確認
+2. 台本作成（60〜90秒、4構成：問いかけ→実際の攻撃3例→共有・照合→正直な約束）
+3. quote照合（累計500クレジット以内）→ 音声生成
+4. スライド合成・字幕付け → `~/workspace/mamori/media/mamori-first-share.mp4` / `.jpg`
+5. 基本確認（全編デコード・実尺・音量）後、試聴版をお渡し
+
+続行してよろしければ「続けて」など一言いただければ、そのまま中断なく進めます。

@@ -364,27 +364,6 @@ def render_intel() -> bytes:
     return html.encode()
 
 
-def render_honeypot() -> bytes:
-    """攻撃者が探すパスの見本と最新脅威を載せる公開ページ（実設定は置かない）。"""
-    try:
-        b = json.loads(LATEST_FILE.read_text())
-    except Exception:  # noqa: BLE001
-        b = {"objects": [], "created": ""}
-    objs = [o for o in (b.get("objects") or b.get("items") or []) if o.get("title")]
-    objs.sort(key=lambda o: o.get("published") or "", reverse=True)
-    rows = []
-    for o in objs[:5]:
-        kind, src, _ = SRC_LABEL.get(o.get("source"), ("情報", o.get("source", ""), "gray"))
-        rows.append(f'<tr><td class="d">{_esc(o.get("published") or "—")}</td>'
-                    f'<td class="src">{_esc(kind)} {_esc(src)}</td>'
-                    f'<td><a href="{_esc(o.get("url"))}" rel="noopener" target="_blank">{_esc(o.get("title"))}</a></td></tr>')
-    created = (b.get("created") or "")[:16].replace("T", " ")
-    html = _page("honeypot.html").decode()
-    html = html.replace("__UPDATED__", _esc(created + " UTC" if created else "—"))
-    html = html.replace("__ROWS__", "\n".join(rows) or '<tr><td colspan="3">まだありません</td></tr>')
-    return html.encode()
-
-
 LANDING = """<!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>守 Mamori — みんなでレポートして、みんなで守る</title>
@@ -1043,8 +1022,6 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, _page("start.html"), "text/html; charset=utf-8")
         elif path == "/intel":
             self._send(200, render_intel(), "text/html; charset=utf-8")
-        elif path in ("/status-page", "/admin", "/server-status"):
-            self._send(200, render_honeypot(), "text/html; charset=utf-8")
         elif path == "/kit.tar.gz":
             if "kit" not in _kit_cache:
                 _kit_cache["kit"] = build_kit()
