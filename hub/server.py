@@ -121,6 +121,18 @@ def anonymize(value):
     return value
 
 ORG_SALT = os.environ.get("MAMORI_ORG_SALT", "")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import accounts  # noqa: E402  セルフサービスの鍵発行・管理
+STORE = accounts.Store(DATA_DIR / "accounts.json", ORG_SALT)
+PUBLIC_URL = os.environ.get("MAMORI_PUBLIC_URL", "https://mamori.teai.io").rstrip("/")
+COOKIE_FLAGS = "HttpOnly; SameSite=Lax" + ("; Secure" if PUBLIC_URL.startswith("https://") else "")
+
+
+def lookup_key(key: str | None) -> dict | None:
+    """運営発行のキー（MAMORI_KEYS_JSON）→ セルフサービスのキーの順に探す。"""
+    if not key:
+        return None
+    return KEYS.get(key) or STORE.lookup(key)
 
 
 def org_hash(org: str) -> str:
@@ -140,7 +152,7 @@ def _stats() -> dict:
             last = b.get("created", "")[:16].replace("T", " ") + " UTC"
         except Exception:
             pass
-    return {"participants": len({v.get("org") for v in KEYS.values()}),
+    return {"participants": len({v.get("org") for v in KEYS.values()} | STORE.active_orgs()),
             "observations_shared": len(obs),
             "intel_objects": intel, "last_update": last,
             "last_refresh_check": _refresh_state["last_ok"],
@@ -499,14 +511,14 @@ td,th{border-bottom:1px solid var(--border);padding:.55rem .4rem;text-align:left
 """
 
 NAV = """<header class="top"><a class="brand" href="/">🛡 守 <span>Mamori</span></a>
-<nav class="top"><a href="/intel">脅威一覧</a><a href="/my">マイページ</a><a href="/post">共有する</a><a href="/api">API</a><a href="/status">ステータス</a><a href="/about">仕組み</a><a href="/agent">エージェント</a><a href="/start">参加ガイド</a></nav></header>"""
+<nav class="top"><a href="/intel">脅威一覧</a><a href="/my">マイページ</a><a href="/post">共有する</a><a href="/api">API</a><a href="/status">ステータス</a><a href="/about">仕組み</a><a href="/agent">エージェント</a><a href="/start">参加ガイド</a><a href="/account">鍵の発行</a></nav></header>"""
 
 
 def render_my(caller, key: str) -> bytes:
     if not caller:
         body = """<div class="card"><h2>参加者キーを入力</h2>
-<p class="muted">発行された専用キー（mk_...）を入力すると、あなたの組織の状態・共有履歴・他社の共有が見られます。キーはURLに保存されません。</p>
-<form method="get" action="/my"><label for="k">参加者キー</label>
+<p class="muted">発行された専用キー（mk_...）を入力すると、あなたの組織の状態・共有履歴・他社の共有が見られます。キーはURLには載りません。</p>
+<form method="post" action="/my"><label for="k">参加者キー</label>
 <input id="k" name="key" type="password" autocomplete="off" placeholder="mk_..." required>
 <p style="margin-top:1rem"><button class="btn primary" type="submit">表示する</button></p></form>
 <p class="muted" style="font-size:.85rem">キーをお持ちでない方は <a href="/start">参加ガイド</a> へ。公開インテルはキー不要で <a href="/intel">/intel</a> から読めます。</p></div>"""
@@ -535,14 +547,14 @@ def render_my(caller, key: str) -> bytes:
 <table><tr><th>時刻</th><th>TLP</th><th>種別</th><th>内容</th></tr>{rows(mine, False)}</table></div>
 <div class="card"><h2>みんなの共有（あなたが見られる範囲・直近50件）</h2>
 <table><tr><th>時刻</th><th>TLP</th><th>種別</th><th>内容</th><th>共有元</th></tr>{rows(others, True)}</table>
-<p style="margin-top:1rem"><a class="btn ghost" href="/post?key={_esc(key)}">観測を共有する →</a></p></div>"""
+<form method="post" action="/post" style="margin-top:1rem"><input type="hidden" name="key" value="{_esc(key)}"><button class="btn ghost" type="submit">観測を共有する →</button></form></div>"""
     return _shell("マイページ — 守 Mamori", body)
 
 
 def render_post(caller, key: str, msg: str = "", ok: bool | None = None) -> bytes:
     if not caller:
         body = """<div class="card"><h2>観測の共有には参加者キーが必要です</h2>
-<form method="get" action="/post"><label for="k">参加者キー</label>
+<form method="post" action="/post"><label for="k">参加者キー</label>
 <input id="k" name="key" type="password" autocomplete="off" placeholder="mk_..." required>
 <p style="margin-top:1rem"><button class="btn primary" type="submit">次へ</button></p></form>
 <p class="muted" style="font-size:.85rem">キーは <a href="/start">参加ガイド</a> の手順で発行されます（ベータ期間中は無料）。</p></div>"""
@@ -574,7 +586,7 @@ def render_post(caller, key: str, msg: str = "", ok: bool | None = None) -> byte
 <option value="AMBER">AMBER（黄）— 運営が確認した会社だけ</option>
 </select>
 <p style="margin-top:1.2rem"><button class="btn primary" type="submit">共有する</button>
-<a class="btn ghost" href="/my?key={_esc(key)}">マイページへ</a></p></form>
+<button class="btn ghost" type="submit" formaction="/my" formnovalidate>マイページへ</button></p></form>
 <p class="muted" style="font-size:.85rem">投稿は1時間に30件まで。90日後に自動削除されます。TLP:RED（共有不可）の情報は絶対に投稿しないでください。</p></div>"""
     return _shell("観測を共有 — 守 Mamori", body)
 
@@ -793,6 +805,96 @@ h1{font-size:1.6rem}h2{font-size:1.15rem;margin-top:2rem}a{color:#0b5fff}</style
 </body></html>"""
 
 
+
+def hmac_eq(a: str, b: str) -> bool:
+    import hmac as _hm
+    return bool(a) and _hm.compare_digest(a, b)
+
+
+def _fmt_day(ts) -> str:
+    return time.strftime("%Y-%m-%d", time.localtime(ts or 0))
+
+
+TLP_EXPLAIN = {
+    "GREEN": "緑（GREEN）まで — 参加している会社の共有も見られます",
+    "CLEAR": "白（CLEAR）まで — 公開分のみ。フリーメールで登録した場合の初期値です。会社のメールで登録し直すか、運営の確認後に緑まで広がります",
+    "AMBER": "黄（AMBER）まで — 運営が確認した会社向けの共有も見られます",
+}
+
+
+def render_account_login(msg: str = "") -> bytes:
+    flash = f'<p class="err">{_esc(msg)}</p>' if msg else ""
+    body = f"""<div class="card"><h2>🔑 鍵の発行・管理</h2>
+<p class="muted">メールアドレスを入れると、ログイン用のリンクが届きます。リンクを開くと、その場で鍵（参加者キー）を発行・確認・停止できます。ベータ期間中は無料です。</p>
+{flash}
+<form method="post" action="/account/login"><label for="email">メールアドレス</label>
+<input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.co.jp" required>
+<p style="margin-top:1rem"><button class="btn primary" type="submit">ログイン用のリンクを送る</button></p></form>
+<p class="muted" style="font-size:.85rem">会社のドメインのメールで登録すると、参加している会社の共有（緑）まで見られます。フリーメールの場合は、まず公開分（白）からです。パスワードはありません。</p></div>"""
+    return _shell("鍵の発行・管理 — 守 Mamori", body)
+
+
+def render_account_sent(email: str) -> bytes:
+    body = f"""<div class="card"><h2>📮 メールを送りました</h2>
+<p><strong>{_esc(email)}</strong> にログイン用のリンクを送りました。30分以内に開いてください。</p>
+<p class="muted">数分たっても届かないときは、迷惑メールのフォルダを確認するか、<a href="/account">もう一度送ってください</a>。</p></div>"""
+    return _shell("メールを送りました — 守 Mamori", body)
+
+
+def render_account_verify(token: str, email: str | None) -> bytes:
+    if not email:
+        body = """<div class="card"><h2>リンクが使えません</h2>
+<p>期限（30分）が切れたか、すでに使われています。<a href="/account">もう一度メールアドレスを入れてください</a>。</p></div>"""
+        return _shell("ログイン — 守 Mamori", body)
+    body = f"""<div class="card"><h2>ログインしますか？</h2>
+<p><strong>{_esc(email)}</strong> として、鍵の管理画面に入ります。</p>
+<form method="post" action="/account/verify"><input type="hidden" name="t" value="{_esc(token)}">
+<p style="margin-top:1rem"><button class="btn primary" type="submit">ログインする</button></p></form></div>"""
+    return _shell("ログイン — 守 Mamori", body)
+
+
+def render_account(email: str, csrf: str, msg: str = "", new_key: str | None = None,
+                   new_rec: dict | None = None) -> bytes:
+    acct = STORE.account(email) or {"tlp_max": accounts.tlp_for_email(email)}
+    keys = STORE.keys_for(email)
+    active = [k for k in keys if not k.get("revoked_at")]
+    flash = f'<p class="ok">{_esc(msg)}</p>' if msg else ""
+    newbox = ""
+    if new_key:
+        newbox = f"""<div class="card" style="border-color:var(--accent)"><h2>✅ 鍵を発行しました</h2>
+<p><strong>この画面を閉じると、二度と表示されません。</strong>いまパスワード管理ソフトなどに保存してください。</p>
+<div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+<code id="newkey" style="font-size:1rem;padding:.6rem .8rem;word-break:break-all">{_esc(new_key)}</code>
+<button class="btn ghost" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('newkey').textContent).then(()=>this.textContent='コピーしました')">コピー</button></div>
+<p class="muted" style="margin-top:.8rem">使い方: ターミナルで <code>export MAMORI_KEY='上のキー'</code> → <code>bash tools/check-key.sh</code> で <code>"ok": true</code> が出れば準備完了。詳しくは <a href="/start">参加ガイド（動画つき）</a>。</p></div>"""
+    rows = []
+    for k in keys:
+        status = (f'<span class="muted">停止（{_fmt_day(k["revoked_at"])}）</span>' if k.get("revoked_at")
+                  else '<span class="tag GREEN">有効</span>')
+        action = "" if k.get("revoked_at") else f"""<form method="post" action="/account/revoke" style="margin:0"
+onsubmit="return confirm('このキーを止めますか？止めると元に戻せません')"><input type="hidden" name="csrf" value="{_esc(csrf)}">
+<input type="hidden" name="id" value="{_esc(k['id'])}"><button class="btn ghost" type="submit" style="white-space:nowrap">止める</button></form>"""
+        rows.append(f'<tr><td>{_esc(k["label"])}</td><td><code>mk_…{_esc(k["last4"])}</code></td>'
+                    f'<td class="muted">{_fmt_day(k["created"])}</td><td>{status}</td><td>{action}</td></tr>')
+    table = "\n".join(rows) or '<tr><td colspan="5" class="muted">まだ鍵はありません。下のボタンで発行できます</td></tr>'
+    can_issue = len(active) < accounts.MAX_ACTIVE_KEYS
+    issue = f"""<form method="post" action="/account/keys"><input type="hidden" name="csrf" value="{_esc(csrf)}">
+<label for="label">鍵の名前（どこで使うか。例: 本社サーバー）</label>
+<input id="label" name="label" type="text" maxlength="40" placeholder="既定のキー" style="width:100%">
+<p style="margin-top:1rem"><button class="btn primary" type="submit">新しい鍵を発行する</button></p></form>""" if can_issue else \
+        f'<p class="muted">有効な鍵は{accounts.MAX_ACTIVE_KEYS}本までです。使っていない鍵を止めると発行できます。</p>'
+    body = f"""{newbox}<div class="card"><h2>🔑 あなたの鍵</h2>
+<p>ログイン中: <strong>{_esc(email)}</strong></p>
+<p class="muted">閲覧範囲: {_esc(TLP_EXPLAIN.get(acct.get("tlp_max", "CLEAR"), acct.get("tlp_max", "")))}</p>
+{flash}
+<div style="overflow-x:auto"><table style="white-space:nowrap"><tr><th>名前</th><th>キー</th><th>発行日</th><th>状態</th><th></th></tr>{table}</table></div>
+<p class="muted" style="font-size:.85rem">キーは発行した瞬間に1回だけ表示し、ハブには元に戻せない形（ハッシュ）でしか保存していません。なくしたら、止めて新しく発行してください。漏れたかもしれないときも、すぐに「止める」を押してください。</p></div>
+<div class="card"><h2>新しい鍵</h2>{issue}</div>
+<div class="card"><p>次にやること: <a href="/start">参加ガイド（動画つき）</a> ／ <a href="/my">マイページ</a> ／ <a href="/post">観測を共有する</a></p>
+<form method="post" action="/account/logout" style="margin-top:.6rem"><input type="hidden" name="csrf" value="{_esc(csrf)}">
+<button class="btn ghost" type="submit">ログアウト</button></form></div>"""
+    return _shell("鍵の発行・管理 — 守 Mamori", body)
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code, body, ctype="application/json"):
         self.send_response(code)
@@ -859,7 +961,7 @@ class Handler(BaseHTTPRequestHandler):
     def _caller(self) -> dict | None:
         q = parse_qs(urlparse(self.path).query)
         key = self.headers.get("X-Mamori-Key") or q.get("key", [None])[0]
-        return KEYS.get(key) if key else None
+        return lookup_key(key)
 
     def do_GET(self):
         path = urlparse(self.path).path
@@ -940,13 +1042,17 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._json(404, {"error": "no report yet"})
         elif path == "/my":
-            q = parse_qs(urlparse(self.path).query)
-            key = q.get("key", [""])[0]
-            self._send(200, render_my(KEYS.get(key) if key else None, key), "text/html; charset=utf-8")
+            self._send(200, render_my(None, ""), "text/html; charset=utf-8")
+        elif path == "/account":
+            sid = self._sid()
+            email = STORE.session_email(sid)
+            self._html(200, render_account(email, STORE.csrf(sid)) if email else render_account_login())
+        elif path == "/account/verify":
+            # メールのリンク先は確認ボタンだけ（メールソフトの自動プレビューでリンクが消費されないように）
+            t = parse_qs(urlparse(self.path).query).get("t", [""])[0]
+            self._html(200, render_account_verify(t, STORE.peek_login(t)))
         elif path == "/post":
-            q = parse_qs(urlparse(self.path).query)
-            key = q.get("key", [""])[0]
-            self._send(200, render_post(KEYS.get(key) if key else None, key), "text/html; charset=utf-8")
+            self._send(200, render_post(None, ""), "text/html; charset=utf-8")
         elif path == "/api":
             self._send(200, render_api_doc(), "text/html; charset=utf-8")
         elif path == "/status":
@@ -958,8 +1064,93 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self._json(404, {"error": "not found"})
 
+    def _form(self) -> dict:
+        try:
+            length = min(int(self.headers.get("Content-Length", 0)), 16_000)
+            return {k: v[0] for k, v in parse_qs(self.rfile.read(length).decode()).items()}
+        except Exception:  # noqa: BLE001
+            return {}
+
+    def _sid(self) -> str:
+        for part in (self.headers.get("Cookie") or "").split(";"):
+            k, _, v = part.strip().partition("=")
+            if k == "mamori_session":
+                return v
+        return ""
+
+    def _redirect(self, to: str, cookie: str | None = None):
+        self.send_response(303)
+        self.send_header("Location", to)
+        if cookie is not None:
+            self.send_header("Set-Cookie", cookie)
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+
+    def _html(self, code: int, body: bytes):
+        self.send_response(code)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _account_post(self, path: str):
+        ip = self.client_address[0]
+        form = self._form()
+        if path == "/account/login":
+            email = accounts.normalize_email(form.get("email", ""))
+            if not email:
+                return self._html(400, render_account_login("メールアドレスの形を確認してください"))
+            if not (_rate_ok(f"login-ip:{ip}", 10) and _rate_ok(f"login-mail:{email}", 3)):
+                return self._html(429, render_account_login("送信が続いています。1時間ほどおいてからお試しください"))
+            token = STORE.create_login(email)
+            link = f"{PUBLIC_URL}/account/verify?t={token}"
+            sent = accounts.send_mail(email, "【守 Mamori】ログイン用のリンク",
+                f"守（Mamori）の鍵の管理画面へのログイン用リンクです。30分以内に開いてください。\n\n{link}\n\n"
+                "心当たりがない場合は、このメールを破棄してください（何も起きません）。\n\n"
+                "守 Mamori — https://mamori.teai.io")
+            if not sent:
+                return self._html(503, render_account_login("メールを送れませんでした。時間をおいてもう一度お試しください"))
+            return self._html(200, render_account_sent(email))
+        if path == "/account/verify":
+            email = STORE.consume_login(form.get("t", ""))
+            if not email:
+                return self._html(400, render_account_login("リンクの期限が切れたか、すでに使われています。もう一度メールアドレスを入れてください"))
+            sid = STORE.create_session(email)
+            return self._redirect("/account", f"mamori_session={sid}; Path=/; Max-Age={accounts.SESSION_TTL}; {COOKIE_FLAGS}")
+        sid = self._sid()
+        email = STORE.session_email(sid)
+        if not email:
+            return self._redirect("/account")
+        if not hmac_eq(form.get("csrf", ""), STORE.csrf(sid)):
+            return self._html(403, render_account_login("画面を開き直してからもう一度お試しください"))
+        if path == "/account/logout":
+            STORE.end_session(sid)
+            return self._redirect("/account", f"mamori_session=; Path=/; Max-Age=0; {COOKIE_FLAGS}")
+        if path == "/account/keys":
+            try:
+                key, rec = STORE.issue(email, form.get("label", ""))
+            except ValueError as e:
+                return self._html(400, render_account(email, STORE.csrf(sid), msg=str(e)))
+            return self._html(200, render_account(email, STORE.csrf(sid), new_key=key, new_rec=rec))
+        if path == "/account/revoke":
+            ok = STORE.revoke(email, form.get("id", ""))
+            return self._html(200, render_account(email, STORE.csrf(sid),
+                                                  msg="キーを止めました。このキーはもう使えません" if ok else "そのキーは見つかりませんでした"))
+        return self._json(404, {"error": "not found"})
+
     def do_POST(self):
         path = urlparse(self.path).path
+        if path.startswith("/account/"):
+            if not _rate_ok(f"acct:{self.client_address[0]}", 60):
+                return self._json(429, {"error": "rate limit exceeded"})
+            return self._account_post(path)
+        if path == "/my":
+            form = self._form()
+            key = form.get("key", "")
+            return self._html(200, render_my(lookup_key(key), key) if lookup_key(key)
+                              else render_my(None, ""))
         if path == "/post":
             return self._post_form()
         if path != "/api/observations":
@@ -1001,19 +1192,24 @@ class Handler(BaseHTTPRequestHandler):
         try:
             length = min(int(self.headers.get("Content-Length", 0)), 64_000)
             raw = self.rfile.read(length).decode()
-            form = {k: v[0] for k, v in parse_qs(raw).items()}
+            multi = parse_qs(raw)
+            form = {k: v[0] for k, v in multi.items()}
+            if "edit" in multi.get("confirm", []):
+                form["confirm"] = "edit"
         except Exception:
             self._send(400, render_post(None, "", "送信内容を読めませんでした", False),
                        "text/html; charset=utf-8")
             return
         key = form.get("key", "")
-        caller = KEYS.get(key)
+        caller = lookup_key(key)
         if not caller:
             return self._send(403, render_post(None, "", "キーが正しくありません", False),
                               "text/html; charset=utf-8")
         if not _rate_ok(f"post:{org_hash(caller.get('org', 'default'))}", POST_LIMIT):
             return self._send(429, render_post(caller, key, "投稿は1時間に30件までです。しばらく待ってからお試しください", False),
                               "text/html; charset=utf-8")
+        if "pattern" not in form or form.get("confirm") == "edit":
+            return self._send(200, render_post(caller, key), "text/html; charset=utf-8")
         pattern = (form.get("pattern") or "").strip()
         if not pattern:
             self._send(400, render_post(caller, key, "「内容」を入力してください", False),
@@ -1034,7 +1230,7 @@ class Handler(BaseHTTPRequestHandler):
 <input type="hidden" name="tlp" value="{_esc(form.get('tlp','GREEN'))}">
 <input type="hidden" name="confirm" value="1">
 <p style="margin-top:1rem"><button class="btn primary" type="submit">この内容で共有する</button>
-<a class="btn ghost" href="/post?key={_esc(key)}">書き直す</a></p></form></div>"""
+<button class="btn ghost" type="submit" name="confirm" value="edit">書き直す</button></p></form></div>"""
             self._send(200, _shell("投稿前の確認 — 守 Mamori", body), "text/html; charset=utf-8")
             return
         body = {"type": form.get("type", "other"), "pattern": pattern,
