@@ -1,6 +1,7 @@
 FROM python:3.12-slim
 WORKDIR /app
 COPY hub/server.py /app/server.py
+COPY hub/accounts.py /app/accounts.py
 COPY hub/pages /app/pages
 COPY agent /app/agent
 COPY tools /app/tools

@@ -187,10 +187,100 @@ def test_hub() -> None:
         probe.unlink(missing_ok=True)
 
 
+def test_accounts() -> None:
+    import http.cookiejar
+    tmp = Path(tempfile.mkdtemp())
+    outbox = tmp / "outbox.jsonl"
+    (tmp / "latest_bundle.json").write_text(json.dumps({"created": "2026-10-23T00:00:00+00:00", "objects": []}))
+    port = free_port()
+    env = dict(os.environ, MAMORI_ORG_SALT="test-salt", MAMORI_DATA=str(tmp), MAMORI_APP=str(ROOT), PORT=str(port),
+               MAMORI_NO_REFRESH="1", MAMORI_MAIL_OUTBOX=str(outbox), MAMORI_PUBLIC_URL=f"http://127.0.0.1:{port}",
+               MAMORI_KEYS_JSON="{}")
+    proc = subprocess.Popen([sys.executable, str(ROOT / "hub" / "server.py")], env=env,
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    base = f"http://127.0.0.1:{port}"
+
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *a, **k):
+            return None
+
+    def session():
+        jar = http.cookiejar.CookieJar()
+        return jar, urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar), NoRedirect)
+
+    def post(op, path, data):
+        import urllib.parse
+        r = urllib.request.Request(base + path, data=urllib.parse.urlencode(data).encode(), method="POST")
+        try:
+            resp = op.open(r, timeout=10)
+            return resp.status, dict(resp.headers), resp.read().decode()
+        except urllib.error.HTTPError as e:
+            return e.code, dict(e.headers), e.read().decode()
+
+    def login(email):
+        jar, op = session()
+        st, _, body = post(op, "/account/login", {"email": email})
+        assert st == 200, body
+        link = json.loads(outbox.read_text().splitlines()[-1])["text"]
+        import re as _re
+        token = _re.search(r"verify\?t=([A-Za-z0-9_\-]+)", link).group(1)
+        st, _, page = req(base + "/account/verify?t=" + token)       # 自動プレビューでは消費されない
+        assert "ログインする" in page.decode()
+        st, h, _ = post(op, "/account/verify", {"t": token})
+        return jar, op, token, st, h
+
+    try:
+        for _ in range(50):
+            try:
+                urllib.request.urlopen(base + "/healthz", timeout=1); break
+            except Exception:  # noqa: BLE001
+                time.sleep(0.1)
+        st, _, body = req(base + "/account")
+        check("account: login form", st == 200 and "ログイン用のリンクを送る" in body.decode())
+        jar, op, token, st, h = login("Taro@Example.co.jp")
+        check("account: verify sets HttpOnly session cookie", st == 303 and "HttpOnly" in h.get("Set-Cookie", ""), str(h))
+        check("account: link is single-use", post(session()[1], "/account/verify", {"t": token})[0] == 400)
+        page = op.open(base + "/account", timeout=10).read().decode()
+        check("account: dashboard shows email", "taro@example.co.jp" in page)
+        import re as _re
+        csrf = _re.search(r'name="csrf" value="([0-9a-f]+)"', page).group(1)
+        st, _, body = post(op, "/account/keys", {"csrf": "bad", "label": "x"})
+        check("account: CSRF required", st == 403)
+        st, _, body = post(op, "/account/keys", {"csrf": csrf, "label": "本社"})
+        m = _re.search(r'id="newkey"[^>]*>(mk_[0-9a-f]{48})<', body)
+        check("account: key issued and shown once", st == 200 and m is not None, body[:300])
+        key = m.group(1)
+        stored = (tmp / "accounts.json").read_text()
+        check("account: plaintext key not stored", key not in stored and oct((tmp / "accounts.json").stat().st_mode)[-3:] == "600")
+        st, _, w = req(base + "/api/whoami", key=key)
+        check("account: company domain key works with GREEN", st == 200 and json.loads(w)["tlp_max"] == "GREEN", w.decode())
+        page2 = op.open(base + "/account", timeout=10).read().decode()
+        check("account: key not re-shown, last4 listed", key not in page2 and key[-4:] in page2)
+        kid = _re.search(r'name="id" value="([0-9a-f]+)"', page2).group(1)
+        st, _, _ = post(op, "/account/revoke", {"csrf": csrf, "id": kid})
+        st2, _, _ = req(base + "/api/whoami", key=key)
+        check("account: revoked key stops working", st == 200 and st2 == 401)
+        _, op2, _, _, _ = login("someone@gmail.com")
+        page = op2.open(base + "/account", timeout=10).read().decode()
+        csrf2 = _re.search(r'name="csrf" value="([0-9a-f]+)"', page).group(1)
+        body = post(op2, "/account/keys", {"csrf": csrf2})[2]
+        key2 = _re.search(r'id="newkey"[^>]*>(mk_[0-9a-f]{48})<', body).group(1)
+        check("account: free-mail key is CLEAR", json.loads(req(base + "/api/whoami", key=key2)[2])["tlp_max"] == "CLEAR")
+        st, _, body = req(base + "/my?key=" + key2)
+        check("my: key in URL is ignored", "参加者キーを入力" in body.decode())
+        st, _, body = post(session()[1], "/my", {"key": key2})
+        check("my: POST with key renders", st == 200 and "あなたのキー" in body)
+        st, _, body = post(session()[1], "/account/login", {"email": "not-an-email"})
+        check("account: invalid email rejected", st == 400)
+    finally:
+        proc.terminate()
+
+
 if __name__ == "__main__":
     test_matcher()
     test_inventory_messages()
     test_drafter()
     test_hub()
+    test_accounts()
     print(f"\n{len(FAILS)} failed" if FAILS else "\nall passed")
     sys.exit(1 if FAILS else 0)
