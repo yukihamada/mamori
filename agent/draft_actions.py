@@ -109,15 +109,15 @@ def draft_actions(item: dict) -> list[str]:
     return actions
 
 
-def make_share_record(observations: list[dict], org: str = "enabler") -> dict:
-    """Lightweight intel-sharing record (STIX-inspired)."""
+def make_share_record(observations: list[dict]) -> dict:
+    """Lightweight intel-sharing record (STIX-inspired).
+    公開バンドルに運営の組織名は入れない（orgフィールド自体を廃止）。"""
     now = datetime.now(timezone.utc).isoformat()
     return {
         "type": "mamori-intel-bundle",
         "spec_version": "0.1",
         "id": "bundle--" + hashlib.sha256(now.encode()).hexdigest()[:32],
         "created": now,
-        "org": org,
         "objects": observations,
     }
 
@@ -180,11 +180,11 @@ def main() -> int:
             "published": i.get("published"),
             "due_date": i.get("due_date"),
             "required_action": i.get("required_action"),
-            "match": i.get("match"),
             "url": i.get("url"),
         }
         # 公開フィードは全件（各社の照合は手元の run.sh で行う）。
-        # match は運営（Enabler）の構成で照合した例。
+        # match（運営の構成での照合結果）は公開バンドルに入れない。
+        # 入っていると「運営がどの製品を使っているか」が外部に漏れるため。
         for i in data.get("items", [])
     ]
     bundle = make_share_record(observations)

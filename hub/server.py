@@ -98,12 +98,22 @@ def _rate_ok_locked(bucket: str, limit: int) -> bool:
 # --- anonymization ----------------------------------------------------------
 EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 IPV4_RE = re.compile(r"\b(\d{1,3}\.\d{1,3}\.\d{1,3})\.\d{1,3}\b")
+# IPv6（簡易）: コロンを2つ以上含む16進表現を伏せる
+IPV6_RE = re.compile(r"\b(?:[0-9a-fA-F]{1,4}:){2,7}[0-9a-fA-F]{1,4}\b")
+# 内部・プライベートを示唆するドメイン尾（.local/.internal/.lan/.corp 等）
+INTERNAL_TLD_RE = re.compile(
+    r"\b[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+    r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*"
+    r"\.(?:local|internal|lan|corp|intra|private)\b", re.IGNORECASE)
 
 def anonymize(value):
-    """Recursively mask emails and IPv4 last octets in strings."""
+    """Recursively mask emails, IPv4 last octets, IPv6, and internal-looking domains."""
     if isinstance(value, str):
         value = EMAIL_RE.sub("[email-masked]", value)
-        return IPV4_RE.sub(r"\1.0/24", value)
+        value = IPV4_RE.sub(r"\1.0/24", value)
+        value = IPV6_RE.sub("[ipv6-masked]", value)
+        value = INTERNAL_TLD_RE.sub("[internal-domain-masked]", value)
+        return value
     if isinstance(value, list):
         return [anonymize(v) for v in value]
     if isinstance(value, dict):
@@ -267,7 +277,7 @@ def refresh_loop() -> None:
 
 
 # --- starter kit / media ----------------------------------------------------
-KIT_FILES = ["run.sh", "README.md", "agent", "examples", "docs", "tools"]
+KIT_FILES = ["run.sh", "README.md", "agent", "examples", "docs", "tools", "mcp"]
 
 
 def build_kit() -> bytes:
@@ -388,7 +398,7 @@ footer a{margin:0 .5rem}
 <a class="skip" href="#main">本文へスキップ</a>
 <header>
 <a class="brand" href="/">🛡 守 <span>Mamori</span></a>
-<small>an <a href="https://teai.io" style="color:var(--muted)">Enabler</a> project · v0.5</small>
+<nav style="font-size:.9rem"><a href="/intel" style="color:var(--muted);text-decoration:none;margin-left:1rem">脅威一覧</a><a href="/my" style="color:var(--muted);text-decoration:none;margin-left:1rem">マイページ</a><a href="/post" style="color:var(--muted);text-decoration:none;margin-left:1rem">共有する</a><a href="/api" style="color:var(--muted);text-decoration:none;margin-left:1rem">API</a><a href="/status" style="color:var(--muted);text-decoration:none;margin-left:1rem">ステータス</a><a href="/about" style="color:var(--muted);text-decoration:none;margin-left:1rem">仕組み</a><a href="/agent" style="color:var(--muted);text-decoration:none;margin-left:1rem">エージェント</a></nav>
 </header>
 <main id="main">
 <section class="hero">
@@ -399,7 +409,7 @@ footer a{margin:0 .5rem}
 <div class="cta">
 <a class="btn primary" href="/start">参加ガイド（5分）</a>
 <a class="btn ghost" href="/intel">最新の脅威を見る（登録不要）</a>
-<a class="btn ghost" href="/api/sample-report">対策レポートの実物</a>
+<a class="btn ghost" href="/about">仕組みと他との違い</a>
 </div>
 <p style="margin-top:1rem;font-size:.85rem;color:var(--muted)"><a href="/kit.tar.gz">照合キット</a> = 自社スタックと脆弱性情報を突き合わせるローカル実行スクリプト一式（tar.gz・認証不要）</p>
 <div class="stats" id="stats">__STATS_HTML__</div>
@@ -415,9 +425,10 @@ footer a{margin:0 .5rem}
 
 <div class="card"><h2>🤝 参加すると何が起きる？</h2>
 <ol>
-<li>発行された<strong>参加者専用キー</strong>で、攻撃の観測（怪しいIP・ペイロード・手法）を <code>POST /api/observations</code> に投稿</li>
+<li>発行された<strong>参加者専用キー</strong>で、攻撃の観測（怪しいIP・ペイロード・手法）を共有。<a href="/post">ブラウザの投稿フォーム</a>または <code>POST /api/observations</code></li>
 <li>ハブ側で<strong>自動匿名化</strong>（IP最終オクテット掩蔽・メールアドレス除去・時刻丸め）</li>
 <li><strong>TLPラベル</strong>（CLEAR/GREEN/AMBER）で共有範囲を自分で制御</li>
+<li><a href="/my">マイページ</a>で自分の共有履歴・みんなの共有をブラウザで確認</li>
 <li>観測は<strong>90日で自動削除</strong>。削除依頼は随時受付</li>
 </ol></div>
 
@@ -488,7 +499,7 @@ td,th{border-bottom:1px solid var(--border);padding:.55rem .4rem;text-align:left
 """
 
 NAV = """<header class="top"><a class="brand" href="/">🛡 守 <span>Mamori</span></a>
-<nav class="top"><a href="/intel">脅威一覧</a><a href="/my">マイページ</a><a href="/post">共有する</a><a href="/api">API</a><a href="/status">ステータス</a><a href="/start">参加ガイド</a></nav></header>"""
+<nav class="top"><a href="/intel">脅威一覧</a><a href="/my">マイページ</a><a href="/post">共有する</a><a href="/api">API</a><a href="/status">ステータス</a><a href="/about">仕組み</a><a href="/agent">エージェント</a><a href="/start">参加ガイド</a></nav></header>"""
 
 
 def render_my(caller, key: str) -> bytes:
@@ -588,6 +599,109 @@ def render_api_doc() -> bytes:
 <p>すべて <code>{"error": "..."}</code> 形式のJSON。400=形式不正、401/403=キー不正、404=なし、429=レート制限。</p>
 <p class="muted">ブラウザからの投稿は <a href="/post">/post</a>、状態確認は <a href="/my">/my</a> でも行えます。</p></div>"""
     return _shell("APIリファレンス — 守 Mamori", body)
+
+
+def render_about() -> bytes:
+    body = """<div class="card"><h2>30秒でわかるMamori</h2>
+<p><strong>Mamoriは「攻撃の観測を、会社どうしで匿名で共有する場」です。</strong></p>
+<p>ある会社が「うちにこんな攻撃が来た」と共有すると、ほかの会社が「同じ攻撃が来たら止めよう」と先回りできます。1社の被害が、みんなのワクチンになる仕組みです。</p>
+<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:1.2rem;font-family:ui-monospace,monospace;font-size:.85rem;line-height:2;overflow-x:auto">
+🏢 A社「/wp-login.php に総当たりが来た」<br>
+&nbsp;&nbsp;→ 🛡 Mamori（自動で匿名化：IP末尾を伏せ・社名は記号に）<br>
+&nbsp;&nbsp;&nbsp;&nbsp;→ 🏢 B社・C社「同じパターンを自社ログで探してブロック」<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ 🏢 B社「うちにも来た。今度はこっちの手口も共有」<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ 🔁 共有するほど、全員の防御が強くなる
+</div></div>
+
+<div class="card"><h2>3つの仕組み</h2>
+<h3 style="margin:.6rem 0 .3rem">1. 脅威を自動で集める（キー不要）</h3>
+<p class="muted">CISA KEV（米政府の「悪用確認済み」脆弱性リスト）とJPCERT/CCの注意喚起・週報を6時間ごとに自動取得。<a href="/intel">/intel</a> で誰でも読めます。</p>
+<h3 style="margin:1rem 0 .3rem">2. 自社に関係あるか照合する</h3>
+<p class="muted">照合キット（無料）が、自社の使っている製品一覧と脆弱性情報を突き合わせ、「要対応／要確認／関係なし」に分類し、対策の下書きまで出します。</p>
+<h3 style="margin:1rem 0 .3rem">3. 観測を匿名で共有する</h3>
+<p class="muted">攻撃を見つけたら、<a href="/post">ブラウザのフォーム</a>から共有。IPアドレスの末尾・メールアドレスは自動で伏せ、会社名は記号（ハッシュ）に置き換えて保存します。共有範囲はTLP（白=公開／緑=参加者のみ／黄=限定）で投稿ごとに選べます。90日後に自動削除。</p></div>
+
+<div class="card"><h2>なぜこれがいいのか</h2>
+<ul>
+<li><strong>中小企業こそ狙われる</strong> — 大企業は高い対策を持つため、攻撃者は対策の薄い中小を踏み台・直接の標的にします。でも中小には専任のセキュリティ担当がいない。</li>
+<li><strong>「受信専用」の情報はあるが「共有する場」がなかった</strong> — JPCERTの注意喚起は読めるが、自社の観測を匿名で出し合う日本語の場は実質ゼロでした。</li>
+<li><strong>共有の最大の障壁は「バレる」こと</strong> — 攻撃を受けたことを公表したくない。Mamoriは自動匿名化でこの心理的障壁を技術的に取り除きます。</li>
+<li><strong>1社の被害が全員の防御になる</strong> — 同じ攻撃は複数社に同時に来ます。最初の1社が共有すれば、残り全員が被害を回避できます。</li>
+</ul></div>
+
+<div class="card"><h2>ほかにないの？（既存の仕組みとの違い）</h2>
+<table>
+<tr><th>仕組み</th><th>向いている人</th><th>コスト・障壁</th><th>Mamoriとの違い</th></tr>
+<tr><td><a href="https://www.misp-project.org/" rel="noopener" target="_blank">MISP</a>（OSS）</td><td>大きなSOC</td><td>無料だが構築・運用に専門要員</td><td>Mamoriはサーバ不要・ブラウザ完結</td></tr>
+<tr><td><a href="https://filigran.io/solutions/open-cti/" rel="noopener" target="_blank">OpenCTI</a></td><td>CTIチーム</td><td>インフラが重い（ES/K8s）</td><td>同上</td></tr>
+<tr><td><a href="https://www.jpcert.or.jp/cista/" rel="noopener" target="_blank">CISTA</a>（JPCERT/CC）</td><td>重要インフラ等・審査制</td><td>中小は事実上対象外</td><td>Mamoriは審査なし・誰でも</td></tr>
+<tr><td>業界ISAC</td><td>業種限定</td><td>年会費数十万〜</td><td>無料・業種不問</td></tr>
+<tr><td>Recorded Future等</td><td>大企業</td><td>年数百万〜（見積制）</td><td>無料</td></tr>
+<tr><td>JPCERT注意喚起・<a href="https://www.jpcert.or.jp/tsubame/" rel="noopener" target="_blank">TSUBAME</a></td><td>全員</td><td>無料</td><td>あちらは<strong>受信専用</strong>。Mamoriは<strong>双方向</strong></td></tr>
+<tr><td><a href="https://www.cisa.gov/topics/cyber-threats-and-advisories/information-sharing/automated-indicator-sharing-ais" rel="noopener" target="_blank">CISA AIS</a>（米）</td><td>米国中心</td><td>PKI証明書・TAXII運用</td><td>日本の中小には非現実的</td></tr>
+</table>
+<p class="muted" style="font-size:.85rem;margin-top:.8rem">Mamoriの独自性: ①ゼロインフラ・ブラウザ完結 ②自動匿名化 ③無料 ④TLPの軽量実装 ⑤日本の中小の「観測共有の空白」を埋める双方向ハブ</p></div>
+
+<div class="card"><h2>使い方（人とAIエージェント）</h2>
+<p><strong>人が使う:</strong> <a href="/my">マイページ</a>でキーを入力 → 共有を読む・<a href="/post">投稿する</a>。詳しい手順は <a href="/start">参加ガイド</a>。</p>
+<p><strong>AIエージェントが使う:</strong> Claude・Senteなどのエージェントから「最新の脅威を調べて」「この観測を共有して」と頼めます。HTTP API（<a href="/api">/api</a>）のほか、<strong>MCPサーバー</strong>も用意しています → <a href="/agent">エージェント向けガイド</a></p></div>"""
+    return _shell("Mamoriの仕組み — 守 Mamori", body)
+
+
+def render_agent() -> bytes:
+    body = """<div class="card"><h2>AIエージェントから使う</h2>
+<p>MamoriはHTTP APIなので、どんなAIエージェント・スクリプトからでも使えます。さらに、Claude等のエージェントが標準で話せる <strong>MCP（Model Context Protocol）サーバー</strong> も同梱しています。</p></div>
+
+<div class="card"><h2>方法1: HTTP API（どのエージェントでも）</h2>
+<p class="muted">エージェントにこう頼むだけです:</p>
+<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:1rem;font-size:.9rem;line-height:1.9">
+「https://mamori.teai.io/api/latest を読んで、今週の重要な脆弱性を3つ教えて」<br>
+「Mamoriに『/wp-login.phpへの総当たり』をTLP:GREENで共有して。キーは環境変数 MAMORI_KEY」
+</div>
+<pre style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.9rem;font-size:.85rem;overflow-x:auto"># 最新の脅威を読む（キー不要）
+curl -s https://mamori.teai.io/api/latest
+
+# 観測を共有する（参加者キー）
+curl -X POST https://mamori.teai.io/api/observations \\
+  -H "X-Mamori-Key: $MAMORI_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"type":"http_probe","pattern":"/wp-login.php への総当たり","tlp":"GREEN"}'
+
+# みんなの共有を読む
+curl -s https://mamori.teai.io/api/observations -H "X-Mamori-Key: $MAMORI_KEY"</pre>
+<p class="muted">エンドポイント一覧は <a href="/api">APIリファレンス</a>。</p></div>
+
+<div class="card"><h2>方法2: MCPサーバー（Claude Desktop / Claude Code / Sente）</h2>
+<p>照合キット（<a href="/kit.tar.gz">kit.tar.gz</a>）に <code>mcp/mamori_mcp.py</code> として同梱。エージェントに「mamori_latest」「mamori_share」などのツールとして見えます。</p>
+<h3 style="margin:.8rem 0 .3rem">Claude Desktop / Claude Code の設定例</h3>
+<pre style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.9rem;font-size:.85rem;overflow-x:auto">{
+  "mcpServers": {
+    "mamori": {
+      "command": "python3",
+      "args": ["/path/to/mamori/mcp/mamori_mcp.py"],
+      "env": { "MAMORI_KEY": "mk_..." }
+    }
+  }
+}</pre>
+<h3 style="margin:1rem 0 .3rem">使えるツール</h3>
+<table>
+<tr><th>ツール</th><th>やること</th><th>キー</th></tr>
+<tr><td><code>mamori_latest</code></td><td>最新の脅威インテルを取得</td><td>不要</td></tr>
+<tr><td><code>mamori_intel_summary</code></td><td>直近の脅威を日本語で要約</td><td>不要</td></tr>
+<tr><td><code>mamori_observations</code></td><td>みんなの共有を読む</td><td>必要</td></tr>
+<tr><td><code>mamori_share</code></td><td>観測を共有（type/pattern/tlp）</td><td>必要</td></tr>
+<tr><td><code>mamori_whoami</code></td><td>キーの有効性を確認</td><td>必要</td></tr>
+</table>
+<p class="muted" style="margin-top:.8rem">MCPサーバーは標準入出力で話す小さなPythonスクリプト（依存なし・stdlibのみ）。キーは環境変数で渡し、コードに書きません。</p></div>
+
+<div class="card"><h2>エージェント運用の例</h2>
+<ul>
+<li><strong>朝の巡回:</strong> エージェントが mamori_latest を読み、自社スタックに関係ある新着をSlack/LINEに要約</li>
+<li><strong>インシデント時:</strong> ログに怪しいパターンを見つけたエージェントが mamori_share で共有（TLP:GREEN）</li>
+<li><strong>相互防御:</strong> mamori_observations を定期取得し、自社のWAF/ファイアウォールのブロック候補を提案</li>
+</ul>
+<p class="muted">エージェントによる共有も人間と同じく自動匿名化・90日削除の対象です。TLP:RED（共有不可）の情報は絶対に投稿しないでください。</p></div>"""
+    return _shell("エージェント向けガイド — 守 Mamori", body)
 
 
 def render_status() -> bytes:
@@ -739,7 +853,7 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path.startswith("/media/"):
             return self._media(path[len("/media/"):])
-        self.send_response(200 if path in ("/", "/healthz", "/start", "/intel", "/my", "/post", "/api", "/status") else 404)
+        self.send_response(200 if path in ("/", "/healthz", "/start", "/intel", "/my", "/post", "/api", "/status", "/about", "/agent") else 404)
         self.end_headers()
 
     def _caller(self) -> dict | None:
@@ -825,11 +939,29 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(200, reports[-1].read_bytes(), "text/markdown; charset=utf-8")
             else:
                 self._json(404, {"error": "no report yet"})
+        elif path == "/my":
+            q = parse_qs(urlparse(self.path).query)
+            key = q.get("key", [""])[0]
+            self._send(200, render_my(KEYS.get(key) if key else None, key), "text/html; charset=utf-8")
+        elif path == "/post":
+            q = parse_qs(urlparse(self.path).query)
+            key = q.get("key", [""])[0]
+            self._send(200, render_post(KEYS.get(key) if key else None, key), "text/html; charset=utf-8")
+        elif path == "/api":
+            self._send(200, render_api_doc(), "text/html; charset=utf-8")
+        elif path == "/status":
+            self._send(200, render_status(), "text/html; charset=utf-8")
+        elif path == "/about":
+            self._send(200, render_about(), "text/html; charset=utf-8")
+        elif path == "/agent":
+            self._send(200, render_agent(), "text/html; charset=utf-8")
         else:
             self._json(404, {"error": "not found"})
 
     def do_POST(self):
         path = urlparse(self.path).path
+        if path == "/post":
+            return self._post_form()
         if path != "/api/observations":
             return self._json(404, {"error": "not found"})
         caller = self._caller()
@@ -844,18 +976,75 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(400, {"error": "invalid json"})
         if not isinstance(body, dict) or not body.get("type"):
             return self._json(400, {"error": "observation must be an object with 'type'"})
+        err, saved = self._save_observation(caller, body)
+        if err:
+            return self._json(400, {"error": err})
+        self._json(201, {"ok": True, "tlp": saved["tlp"]})
+
+    def _save_observation(self, caller: dict, body: dict):
+        """共通の投稿処理。(エラーメッセージ or None, 保存したbody) を返す。"""
         tlp = str(body.get("tlp", "GREEN")).upper()
-        if tlp not in TLP_ORDER or tlp == "RED":
-            tlp = "GREEN"  # RED (do not share) is rejected into GREEN-less: refuse instead
-            if str(body.get("tlp", "")).upper() == "RED":
-                return self._json(400, {"error": "TLP:RED must not be shared; do not submit"})
+        if str(body.get("tlp", "")).upper() == "RED":
+            return "TLP:RED must not be shared; do not submit", None
+        if tlp not in TLP_ORDER:
+            tlp = "GREEN"
         body = anonymize(body)
         body["tlp"] = tlp
         body["org_hash"] = org_hash(caller.get("org", "default"))
         body["received_at"] = round(time.time() / 3600) * 3600  # hour-rounding
         with _file_lock, OBS_FILE.open("a") as f:
             f.write(json.dumps(body, ensure_ascii=False) + "\n")
-        self._json(201, {"ok": True, "tlp": tlp})
+        return None, body
+
+    def _post_form(self):
+        """ブラウザの投稿フォーム（/post）からの送信。"""
+        try:
+            length = min(int(self.headers.get("Content-Length", 0)), 64_000)
+            raw = self.rfile.read(length).decode()
+            form = {k: v[0] for k, v in parse_qs(raw).items()}
+        except Exception:
+            self._send(400, render_post(None, "", "送信内容を読めませんでした", False),
+                       "text/html; charset=utf-8")
+            return
+        key = form.get("key", "")
+        caller = KEYS.get(key)
+        if not caller:
+            return self._send(403, render_post(None, "", "キーが正しくありません", False),
+                              "text/html; charset=utf-8")
+        if not _rate_ok(f"post:{org_hash(caller.get('org', 'default'))}", POST_LIMIT):
+            return self._send(429, render_post(caller, key, "投稿は1時間に30件までです。しばらく待ってからお試しください", False),
+                              "text/html; charset=utf-8")
+        pattern = (form.get("pattern") or "").strip()
+        if not pattern:
+            self._send(400, render_post(caller, key, "「内容」を入力してください", False),
+                       "text/html; charset=utf-8")
+            return
+        # 確認ステップ: 匿名化後の姿を見せてから投稿（confirm=1 で確定）
+        if form.get("confirm") != "1":
+            preview = anonymize({"type": form.get("type", "other"), "pattern": pattern,
+                                 "tlp": form.get("tlp", "GREEN")})
+            body = f"""<div class="card"><h2>投稿前の確認</h2>
+<p class="muted">この内容で共有します。自動匿名化（IP末尾・メール・IPv6・内部ドメインを伏字）を適用したあとの姿です。<strong>自社ドメイン・社内サーバー名・人の名前が残っていないか確認してください。</strong></p>
+<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:1rem;font-family:ui-monospace,monospace;font-size:.9rem;white-space:pre-wrap">{_esc(preview['pattern'])}</div>
+<p style="margin:.6rem 0">種別: <code>{_esc(preview['type'])}</code> ／ 共有範囲: <span class="tag {_esc(preview['tlp'])}">{_esc(preview['tlp'])}</span></p>
+<form method="post" action="/post">
+<input type="hidden" name="key" value="{_esc(key)}">
+<input type="hidden" name="type" value="{_esc(form.get('type','other'))}">
+<input type="hidden" name="pattern" value="{_esc(pattern)}">
+<input type="hidden" name="tlp" value="{_esc(form.get('tlp','GREEN'))}">
+<input type="hidden" name="confirm" value="1">
+<p style="margin-top:1rem"><button class="btn primary" type="submit">この内容で共有する</button>
+<a class="btn ghost" href="/post?key={_esc(key)}">書き直す</a></p></form></div>"""
+            self._send(200, _shell("投稿前の確認 — 守 Mamori", body), "text/html; charset=utf-8")
+            return
+        body = {"type": form.get("type", "other"), "pattern": pattern,
+                "tlp": form.get("tlp", "GREEN"), "via": "web-form"}
+        err, saved = self._save_observation(caller, body)
+        if err:
+            self._send(400, render_post(caller, key, err, False), "text/html; charset=utf-8")
+            return
+        self._send(200, render_post(caller, key, f"共有しました（TLP:{saved['tlp']}）。ありがとうございます — みんなの防御に使われます。", True),
+                   "text/html; charset=utf-8")
 
     def log_message(self, *a):
         pass
