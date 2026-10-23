@@ -110,9 +110,14 @@ def anonymize(value):
         return {k: anonymize(v) for k, v in value.items()}
     return value
 
+ORG_SALT = os.environ.get("MAMORI_ORG_SALT", "")
+
+
 def org_hash(org: str) -> str:
-    """プロセス再起動で変わらない組織ハッシュ（v0.4までは hash() で毎回変わっていた）。"""
-    return hashlib.sha256(("mamori-org:" + org).encode()).hexdigest()[:10]
+    """組織の記号。ハブだけが知る秘密の値（MAMORI_ORG_SALT）で HMAC を取るので、
+    組織名の候補から外部が同じ記号を計算することはできない。再起動しても変わらない。"""
+    import hmac
+    return hmac.new(ORG_SALT.encode(), ("mamori-org:" + org).encode(), hashlib.sha256).hexdigest()[:10]
 
 
 def _stats() -> dict:
@@ -615,6 +620,8 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     port = int(os.environ.get("PORT", "8080"))
     print(f"mamori hub v{VERSION} listening on :{port} (keys: {len(KEYS)})", flush=True)
+    if not ORG_SALT:
+        print("warning: MAMORI_ORG_SALT is not set; org_hash is guessable", flush=True)
     if (APP_DIR / "agent").exists():
         try:  # 起動時に公開STIXを必ず作り直す（古い版が書いた内容を残さない）
             prune_observations()

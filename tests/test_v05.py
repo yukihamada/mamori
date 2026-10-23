@@ -116,7 +116,7 @@ def test_hub() -> None:
         {"type": "attack-observation", "pattern": "old-clear-obs", "tlp": "CLEAR", "received_at": now - 91 * 86400},
     ]))
     port = free_port()
-    env = dict(os.environ, MAMORI_DATA=str(tmp), MAMORI_APP=str(ROOT), PORT=str(port), MAMORI_NO_REFRESH="1",
+    env = dict(os.environ, MAMORI_ORG_SALT="test-salt", MAMORI_DATA=str(tmp), MAMORI_APP=str(ROOT), PORT=str(port), MAMORI_NO_REFRESH="1",
                MAMORI_KEYS_JSON=json.dumps({"k-green": {"org": "acme", "tlp_max": "GREEN"},
                                             "k-amber": {"org": "vetted", "tlp_max": "AMBER"}}))
     proc = subprocess.Popen([sys.executable, str(ROOT / "hub" / "server.py")], env=env,
@@ -155,10 +155,20 @@ def test_hub() -> None:
         o = [x for x in json.loads(body)["observations"] if "brute force" in x["pattern"]][0]
         check("anonymize: ip /24 + email masked", "203.0.113.0/24" in o["pattern"] and "a@b.co" not in o["pattern"], o["pattern"])
         import hashlib
-        check("org_hash stable sha256", o["org_hash"] == hashlib.sha256(b"mamori-org:acme").hexdigest()[:10])
+        import hmac
+        check("org_hash is salted HMAC (not guessable from name)",
+              o["org_hash"] == hmac.new(b"test-salt", b"mamori-org:acme", hashlib.sha256).hexdigest()[:10]
+              and o["org_hash"] != hashlib.sha256(b"mamori-org:acme").hexdigest()[:10])
         r = subprocess.run(["bash", str(ROOT / "tools" / "feed.sh")], capture_output=True, text=True,
                            env=dict(os.environ, MAMORI_HUB=base, MAMORI_KEY="k-amber"))
         check("feed.sh lists observations in Japanese", r.returncode == 0 and "共有された観測" in r.stdout and "[黄]" in r.stdout, r.stdout + r.stderr)
+        req(base + "/api/observations", key="k-green", data={"type": "attack-observation", "pattern": "own-green", "tlp": "GREEN", "count": 1})
+        r = subprocess.run(["bash", str(ROOT / "tools" / "feed.sh")], capture_output=True, text=True,
+                           env=dict(os.environ, MAMORI_HUB=base, MAMORI_KEY="k-green"))
+        check("feed.sh marks own rows", "（自社）" in r.stdout, r.stdout)
+        r = subprocess.run(["bash", str(ROOT / "tools" / "feed.sh")], capture_output=True, text=True,
+                           env=dict(os.environ, MAMORI_HUB=base, MAMORI_KEY="wrong-key"))
+        check("feed.sh stops on invalid key", r.returncode != 0 and "キーが確認できません" in (r.stdout + r.stderr), r.stdout + r.stderr)
         st, h, body = req(base + "/media/zz-test.mp4", headers={"Range": "bytes=10-19"})
         check("media: range 206", st == 206 and body == (bytes(range(256)) * 40)[10:20] and h.get("Content-Range") == "bytes 10-19/10240", str((st, h.get("Content-Range"))))
         st, _, _ = req(base + "/media/../server.py")
