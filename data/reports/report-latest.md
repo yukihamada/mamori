@@ -57,3 +57,16 @@
 - CISA指定の対応（要約）: ベンダーの指示どおりに修正・緩和策を適用。できない場合は製品の使用を止める。期限は米国政府機関向けの目安
 -   原文: Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discon
 - 一次情報: https://nvd.nist.gov/vuln/detail/CVE-2026-96652
+
+---
+
+## 対応記録（2026-10-23 10:00 JST）
+
+### Plex Media Server 4件への対応
+**実施した調査:**
+1. このMac: /Applications・~/Applications・プロセス・ポート32400・Preferences・mdfind を全て確認 → **Plex未インストール**
+2. Fly.io 全64 deployed アプリにSSHして Plex パッケージ・プロセスを走査 → **Plex稼働なし**（banto-db等の数字は `pgrep` のPID自己一致による誤検出と確認）
+
+**結論:** 自社資産に Plex Media Server の稼働は確認されず、現時点で CVE-2026-96652/54/55/56 の実リスクはなし。監視リストには残し、今後新たにPlexを導入した場合は即座に検知される。
+
+**再発防止:** 6時間ごとの自動 refresh（launchd `io.teai.mamori-refresh`）で監視継続中。

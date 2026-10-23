@@ -451,6 +451,180 @@ fetch('/api/stats').then(r=>r.json()).then(s=>{
 </body></html>"""
 
 
+PAGE_CSS = """
+:root{--bg:#0d1117;--card:#161b22;--border:#30363d;--fg:#e6edf3;--muted:#8b949e;--accent:#3fb950;--accent2:#58a6ff;--warn:#d29922;--danger:#f85149}
+@media (prefers-color-scheme:light){:root{--bg:#ffffff;--card:#f6f8fa;--border:#d0d7de;--fg:#1f2328;--muted:#57606a;--accent:#1a7f37;--accent2:#0969da}}
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--fg);margin:0;line-height:1.7}
+.wrap{max-width:860px;margin:0 auto;padding:2rem 1.25rem 4rem}
+a{color:var(--accent2)}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+header.top{border-bottom:1px solid var(--border);padding:.9rem 1.25rem;display:flex;justify-content:space-between;align-items:center}
+.brand{font-weight:700;text-decoration:none;color:var(--fg)}
+.brand span{color:var(--accent)}
+nav.top a{margin-left:1rem;font-size:.9rem;text-decoration:none;color:var(--muted)}
+nav.top a:hover{color:var(--fg)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.4rem;margin:1rem 0}
+h1{font-size:1.7rem;margin:.4rem 0 1rem}
+h2{font-size:1.15rem;margin:0 0 .8rem}
+.muted{color:var(--muted)}
+code,kbd{background:#1f2630;padding:.15em .45em;border-radius:4px;font-size:.9em;color:var(--accent2)}
+input[type=text],input[type=password],select,textarea{width:100%;padding:.65rem .8rem;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg);font-size:1rem;font-family:inherit}
+textarea{min-height:110px;font-family:ui-monospace,monospace;font-size:.9rem}
+label{display:block;font-weight:600;margin:1rem 0 .3rem}
+.btn{display:inline-block;padding:.7rem 1.5rem;border-radius:8px;border:0;font-weight:600;font-size:1rem;cursor:pointer;text-decoration:none}
+.btn.primary{background:var(--accent);color:#04160a}
+.btn.ghost{border:1px solid var(--border);color:var(--fg);background:transparent}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+td,th{border-bottom:1px solid var(--border);padding:.55rem .4rem;text-align:left;vertical-align:top}
+.tag{display:inline-block;border-radius:6px;padding:.05rem .5rem;font-size:.75rem;font-weight:700}
+.tag.CLEAR{background:#30363d;color:#e6edf3}
+.tag.GREEN{background:rgba(63,185,80,.18);color:var(--accent)}
+.tag.AMBER{background:rgba(210,153,34,.2);color:var(--warn)}
+.pill{display:inline-block;border:1px solid var(--border);border-radius:999px;padding:.15rem .7rem;font-size:.8rem;color:var(--muted)}
+.ok{color:var(--accent);font-weight:700}
+.err{color:var(--danger);font-weight:700}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+"""
+
+NAV = """<header class="top"><a class="brand" href="/">🛡 守 <span>Mamori</span></a>
+<nav class="top"><a href="/intel">脅威一覧</a><a href="/my">マイページ</a><a href="/post">共有する</a><a href="/api">API</a><a href="/status">ステータス</a><a href="/start">参加ガイド</a></nav></header>"""
+
+
+def render_my(caller, key: str) -> bytes:
+    if not caller:
+        body = """<div class="card"><h2>参加者キーを入力</h2>
+<p class="muted">発行された専用キー（mk_...）を入力すると、あなたの組織の状態・共有履歴・他社の共有が見られます。キーはURLに保存されません。</p>
+<form method="get" action="/my"><label for="k">参加者キー</label>
+<input id="k" name="key" type="password" autocomplete="off" placeholder="mk_..." required>
+<p style="margin-top:1rem"><button class="btn primary" type="submit">表示する</button></p></form>
+<p class="muted" style="font-size:.85rem">キーをお持ちでない方は <a href="/start">参加ガイド</a> へ。公開インテルはキー不要で <a href="/intel">/intel</a> から読めます。</p></div>"""
+        return _shell("マイページ — 守 Mamori", body)
+    oh = org_hash(caller.get("org", "default"))
+    tlp_max = _tlp_max(caller)
+    max_tlp = TLP_ORDER.get(tlp_max, 1)
+    mine = [o for o in _read_obs() if o.get("org_hash") == oh]
+    visible = [o for o in _read_obs() if TLP_ORDER.get(o.get("tlp", "GREEN"), 1) <= max_tlp]
+    others = [o for o in visible if o.get("org_hash") != oh]
+    def rows(obs, show_org):
+        out = []
+        for o in sorted(obs, key=lambda x: x.get("received_at", 0), reverse=True)[:50]:
+            ts = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(o.get("received_at", 0)))
+            tlp = _esc(o.get("tlp", "GREEN"))
+            typ = _esc(o.get("type", "—"))
+            pat = _esc(str(o.get("pattern", ""))[:120])
+            org = f'<td class="muted">{_esc(o.get("org_hash", "—")[:10])}</td>' if show_org else ""
+            out.append(f'<tr><td class="muted">{ts}</td><td><span class="tag {tlp}">{tlp}</span></td>'
+                       f'<td>{typ}</td><td>{pat}</td>{org}</tr>')
+        return "\n".join(out) or '<tr><td colspan="5" class="muted">まだありません</td></tr>'
+    body = f"""<div class="card"><h2>あなたのキー</h2>
+<p>組織の記号: <code>{_esc(oh)}</code> ／ 閲覧範囲: <span class="tag {_esc(tlp_max)}">{_esc(tlp_max)}</span> まで</p>
+<p class="muted" style="font-size:.85rem">組織名は記号（ハッシュ）でのみ表示されます。キーの漏洩が疑われる場合は <a href="https://teai.io/contact">お問い合わせ</a> から失効を依頼してください（24時間以内に対応）。</p></div>
+<div class="card"><h2>あなたの共有（直近50件・90日で自動削除）</h2>
+<table><tr><th>時刻</th><th>TLP</th><th>種別</th><th>内容</th></tr>{rows(mine, False)}</table></div>
+<div class="card"><h2>みんなの共有（あなたが見られる範囲・直近50件）</h2>
+<table><tr><th>時刻</th><th>TLP</th><th>種別</th><th>内容</th><th>共有元</th></tr>{rows(others, True)}</table>
+<p style="margin-top:1rem"><a class="btn ghost" href="/post?key={_esc(key)}">観測を共有する →</a></p></div>"""
+    return _shell("マイページ — 守 Mamori", body)
+
+
+def render_post(caller, key: str, msg: str = "", ok: bool | None = None) -> bytes:
+    if not caller:
+        body = """<div class="card"><h2>観測の共有には参加者キーが必要です</h2>
+<form method="get" action="/post"><label for="k">参加者キー</label>
+<input id="k" name="key" type="password" autocomplete="off" placeholder="mk_..." required>
+<p style="margin-top:1rem"><button class="btn primary" type="submit">次へ</button></p></form>
+<p class="muted" style="font-size:.85rem">キーは <a href="/start">参加ガイド</a> の手順で発行されます（ベータ期間中は無料）。</p></div>"""
+        return _shell("観測を共有 — 守 Mamori", body)
+    flash = ""
+    if msg:
+        cls = "ok" if ok else "err"
+        flash = f'<p class="{cls}">{_esc(msg)}</p>'
+    body = f"""<div class="card"><h2>攻撃の観測を共有する</h2>
+<p class="muted">見つけた攻撃の特徴（怪しいパス・ペイロード・手法など）を共有すると、他の参加者の防御に使われます。IPアドレスの末尾・メールアドレスは自動で伏せられますが、<strong>自社ドメイン・社内サーバー名・人の名前は投稿前にご自身で消してください</strong>。</p>
+{flash}
+<form method="post" action="/post">
+<input type="hidden" name="key" value="{_esc(key)}">
+<label for="type">種別（何を見たか）</label>
+<select id="type" name="type">
+<option value="http_probe">HTTP プローブ（怪しいパスへのアクセス）</option>
+<option value="brute_force">総当たり（ログイン試行）</option>
+<option value="payload">ペイロード（コマンド・SQL注入など）</option>
+<option value="scanner">スキャナー（脆弱性スキャン）</option>
+<option value="malware">マルウェア通信</option>
+<option value="other">その他</option>
+</select>
+<label for="pattern">内容（何を・どこで）。例: wp-login.php へのPOST、/etc/passwd を含むリクエスト</label>
+<textarea id="pattern" name="pattern" required maxlength="2000" placeholder="例: /wp-login.php への総当たりを412回観測。送信元は /24 で伏せられます"></textarea>
+<label for="tlp">共有範囲（TLP）— 迷ったら GREEN</label>
+<select id="tlp" name="tlp">
+<option value="CLEAR">CLEAR（白）— 誰でも見られる</option>
+<option value="GREEN" selected>GREEN（緑）— 参加している会社だけ</option>
+<option value="AMBER">AMBER（黄）— 運営が確認した会社だけ</option>
+</select>
+<p style="margin-top:1.2rem"><button class="btn primary" type="submit">共有する</button>
+<a class="btn ghost" href="/my?key={_esc(key)}">マイページへ</a></p></form>
+<p class="muted" style="font-size:.85rem">投稿は1時間に30件まで。90日後に自動削除されます。TLP:RED（共有不可）の情報は絶対に投稿しないでください。</p></div>"""
+    return _shell("観測を共有 — 守 Mamori", body)
+
+
+def render_api_doc() -> bytes:
+    body = """<div class="card"><h2>認証</h2>
+<p>参加者向けエンドポイントは、HTTPヘッダー <code>X-Mamori-Key: mk_...</code>（またはクエリ <code>?key=</code>）で認証します。公開エンドポイントは認証不要です。レート制限: 投稿 30回/時・キー、読取 120回/時・IP。超過時は <code>429</code>。</p></div>
+<div class="card"><h2>公開（認証不要）</h2>
+<table><tr><th>エンドポイント</th><th>内容</th></tr>
+<tr><td><code>GET /api/latest</code></td><td>最新の脅威インテル（TLP:CLEAR・JSON）</td></tr>
+<tr><td><code>GET /api/stix</code></td><td>STIX 2.1 バンドル（MISP/OpenCTIにインポート可）</td></tr>
+<tr><td><code>GET /api/stats</code></td><td>公開カウンタ（参加組織数・観測数・インテル件数）</td></tr>
+<tr><td><code>GET /api/sample-report</code></td><td>対策下書きレポートの実物（Markdown）</td></tr>
+<tr><td><code>GET /api/observations</code></td><td>キーなし: TLP:CLEAR の観測のみ</td></tr>
+<tr><td><code>GET /healthz</code> / <code>/api/refresh-status</code></td><td>稼働確認・最終リフレッシュ状況</td></tr></table></div>
+<div class="card"><h2>参加者（キー必須）</h2>
+<table><tr><th>エンドポイント</th><th>内容</th></tr>
+<tr><td><code>GET /api/whoami</code></td><td>キーの有効性確認。org_hash と tlp_max を返す</td></tr>
+<tr><td><code>GET /api/observations</code></td><td>自分の tlp_max 以下の観測（直近200件・90日保持）</td></tr>
+<tr><td><code>POST /api/observations</code></td><td>観測を投稿。JSON: <code>{"type": "...", "pattern": "...", "tlp": "CLEAR|GREEN|AMBER"}</code>。TLP:RED は拒否（400）。成功時 201</td></tr></table></div>
+<div class="card"><h2>エラー形式</h2>
+<p>すべて <code>{"error": "..."}</code> 形式のJSON。400=形式不正、401/403=キー不正、404=なし、429=レート制限。</p>
+<p class="muted">ブラウザからの投稿は <a href="/post">/post</a>、状態確認は <a href="/my">/my</a> でも行えます。</p></div>"""
+    return _shell("APIリファレンス — 守 Mamori", body)
+
+
+def render_status() -> bytes:
+    s = _stats()
+    rs = {**_refresh_state, "bundle_age_hours": round(_bundle_age_hours(), 2)}
+    age = rs["bundle_age_hours"]
+    fresh = age < REFRESH_HOURS * 1.5
+    state = '<span class="ok">正常</span>' if fresh and not _refresh_state.get("last_error") else \
+            ('<span class="err">要確認</span>' if _refresh_state.get("last_error") else '<span class="muted">更新待ち</span>')
+    body = f"""<div class="card"><h2>稼働状況</h2>
+<p>状態: {state} ／ バージョン: v{VERSION}</p>
+<table>
+<tr><th>項目</th><th>値</th></tr>
+<tr><td>最終インテル生成</td><td>{_esc(s["last_update"] or "—")}</td></tr>
+<tr><td>最終リフレッシュ成功</td><td>{_esc(_refresh_state.get("last_ok") or "—")}</td></tr>
+<tr><td>バンドルの経過時間</td><td>{age} 時間（{REFRESH_HOURS}時間ごとに自動更新）</td></tr>
+<tr><td>最後のエラー</td><td>{_esc(_refresh_state.get("last_error") or "なし")}</td></tr>
+<tr><td>参加組織 / 観測 / インテル</td><td>{s["participants"]} / {s["observations_shared"]} / {s["intel_objects"]}</td></tr></table></div>
+<div class="card"><h2>情報源</h2>
+<ul><li>CISA KEV（悪用確認済み脆弱性カタログ）</li><li>JPCERT/CC 注意喚起</li><li>JPCERT/CC Weekly Report</li></ul>
+<p class="muted">機械向け: <code>GET /healthz</code> ・ <code>GET /api/refresh-status</code>（JSON）</p></div>"""
+    return _shell("ステータス — 守 Mamori", body)
+
+
+def _shell(title: str, body: str) -> bytes:
+    html = f"""<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{_esc(title)}</title>
+<meta name="description" content="守 Mamori — セキュリティ相互防御ハブ">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<style>{PAGE_CSS}</style></head><body>
+{NAV}
+<main class="wrap">{body}</main>
+</body></html>"""
+    return html.encode()
+
+
 TERMS = """<!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Mamori 利用規約・データ取り扱い</title>
@@ -565,7 +739,7 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path.startswith("/media/"):
             return self._media(path[len("/media/"):])
-        self.send_response(200 if path in ("/", "/healthz", "/start", "/intel") else 404)
+        self.send_response(200 if path in ("/", "/healthz", "/start", "/intel", "/my", "/post", "/api", "/status") else 404)
         self.end_headers()
 
     def _caller(self) -> dict | None:
