@@ -1,0 +1,216 @@
+#!/usr/bin/env python3
+"""mamori_guard の判定・修正・巻き戻しを、OSの応答を模した偽システムで確かめる。"""
+from __future__ import annotations
+
+import json
+import sys
+import tempfile
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "agent"))
+import mamori_guard as g  # noqa: E402
+
+
+class Fake(g.System):
+    def __init__(self, osname, answers, admin=True, tools=()):
+        self.os = osname
+        self.env = {}
+        self.answers = answers  # [(部分文字列, rc, 出力)] 先に一致したもの
+        self.admin = admin
+        self.tools = set(tools)
+        self.calls = []
+        self.files = {}
+
+    def is_admin(self):
+        return self.admin
+
+    def which(self, name):
+        return f"/usr/bin/{name}" if name in self.tools else None
+
+    def run(self, cmd, timeout=60):
+        line = " ".join(cmd)
+        self.calls.append(line)
+        for key, rc, out in self.answers:
+            if key in line:
+                return rc, out
+        return 1, ""
+
+    def ps(self, script, timeout=120):
+        return self.run(["powershell", script])
+
+    def read(self, path):
+        return self.files.get(path)
+
+    def exists(self, path):
+        return path in self.files
+
+    def write(self, path, content):
+        self.files[path] = content
+
+    def remove(self, path):
+        self.files.pop(path, None)
+
+    def fetch_json(self, url, timeout=20):
+        raise OSError("offline")
+
+
+def by_id(rep):
+    return {x["id"]: x for x in rep["findings"]}
+
+
+WIN_WEAK = [
+    ("Get-NetFirewallProfile", 0, json.dumps([{"Name": "Domain", "Enabled": True},
+                                              {"Name": "Public", "Enabled": False}])),
+    ("Get-MpComputerStatus", 0, json.dumps({"RealTimeProtectionEnabled": False, "AntivirusSignatureAge": 5})),
+    ("Get-SmbServerConfiguration", 0, json.dumps({"EnableSMB1Protocol": True})),
+    ("Get-BitLockerVolume", 0, json.dumps({"ProtectionStatus": 0})),
+    ("'EnableLUA'", 0, "0"),
+    ("'fDenyTSConnections'", 0, "0"),
+    ("'UserAuthentication'", 0, "0"),
+    ("'NoAutoUpdate'", 0, "1"),
+    ("Microsoft.Update.Session", 0, "3"),
+    ("Get-LocalUser", 0, json.dumps({"Enabled": True})),
+    ("Uninstall", 0, json.dumps([{"DisplayName": "Plex Media Server", "DisplayVersion": "1.40"},
+                                 {"DisplayName": "Google Chrome", "DisplayVersion": "120"}])),
+]
+INTEL = [
+    {"type": "advisory", "id": "CVE-1", "title": "Plex Media Server: Plex Media Server Path Vulnerability",
+     "severity": "exploited-in-the-wild"},
+    {"type": "advisory", "id": "CVE-2", "title": "Google Chromium V8: Type Confusion"},
+    {"type": "advisory", "id": "CVE-3", "title": "Microsoft Windows: Win32k Privilege Escalation"},
+    {"type": "advisory", "id": "CVE-4", "title": "EG Secure Solutions SiteGuard: OS Command Injection"},
+]
+
+
+def test_windows_client():
+    s = Fake("windows", WIN_WEAK, tools={"winget"})
+    rep = g.scan(s, "client", "standard", Path(tempfile.mkdtemp()), with_intel=False)
+    f = by_id(rep)
+    assert f["win.firewall"]["status"] == "weak" and f["win.firewall"]["tier"] == g.AUTO
+    assert "Public" in f["win.firewall"]["fix"][0]["ps"] and "Domain" not in f["win.firewall"]["fix"][0]["ps"]
+    assert f["win.defender"]["tier"] == g.AUTO and f["win.defender_sig"]["status"] == "weak"
+    assert f["win.smb1"]["undo"], "SMBv1 は戻せること"
+    assert f["win.bitlocker"]["tier"] == g.MANUAL
+    assert f["win.uac"]["tier"] == g.CONFIRM and f["win.rdp_nla"]["tier"] == g.CONFIRM
+    assert f["win.autoupdate"]["status"] == "weak" and f["win.os_updates"]["tier"] == g.CONFIRM
+    assert f["win.guest"]["status"] == "weak"
+    sd = Path(tempfile.mkdtemp())
+    res = {r["id"]: r["result"] for r in g.apply(s, rep, sd, auto=True, approve=set(), dry=False)}
+    # 承認が要るもの・手作業のものは自動では触らない
+    assert "win.uac" not in res and "win.rdp_nla" not in res and "win.bitlocker" not in res
+    # 偽システムは書き込み系に rc=1 を返すので failed → 失敗時の巻き戻しが走る
+    assert res["win.firewall"] == "failed"
+    assert any("Set-NetFirewallProfile -Profile Public -Enabled False" in c for c in s.calls)
+
+
+def test_windows_server_firewall_needs_approval():
+    s = Fake("windows", WIN_WEAK)
+    rep = g.scan(s, "server", "standard", Path(tempfile.mkdtemp()), with_intel=False)
+    assert by_id(rep)["win.firewall"]["tier"] == g.CONFIRM
+
+
+def test_windows_needs_admin():
+    s = Fake("windows", WIN_WEAK, admin=False)
+    rep = g.scan(s, "client", "standard", Path(tempfile.mkdtemp()), with_intel=False)
+    res = g.apply(s, rep, Path(tempfile.mkdtemp()), auto=True, approve=set(), dry=False)
+    assert all(r["result"] == "needs-admin" for r in res)
+
+
+def test_intel_matching_windows():
+    s = Fake("windows", WIN_WEAK, tools={"winget"})
+    sw, os_hits = g.match_intel(s, INTEL, g.installed_software(s))
+    names = {h["name"]: [a["id"] for a in h["advisories"]] for h in sw}
+    assert names == {"Plex Media Server": ["CVE-1"], "Google Chrome": ["CVE-2"]}, names
+    assert [a["id"] for a in os_hits] == ["CVE-3"]
+    fx = g.intel_findings(s, sw, os_hits)
+    plex = [x for x in fx if "Plex" in x["title"]][0]
+    assert plex["tier"] == g.AUTO and plex["fix"][0]["cmd"][:2] == ["winget", "upgrade"]
+
+
+def test_intel_no_false_positive_short_names():
+    s = Fake("linux", [("dpkg-query", 0, "ssh\t1\nlibc6\t2\nopenssh-server\t9.6\ncore\t1\n")], tools={"dpkg-query"})
+    sw, _ = g.match_intel(s, INTEL + [{"id": "CVE-9", "title": "OpenSSH: Race"}], g.installed_software(s))
+    assert [h["name"] for h in sw] == ["openssh-server"]
+
+
+MAC_WEAK = [
+    ("--getglobalstate", 0, "Firewall is disabled. (State = 0)"),
+    ("spctl --status", 0, "assessments enabled"),
+    ("csrutil status", 0, "System Integrity Protection status: enabled."),
+    ("fdesetup status", 0, "FileVault is Off."),
+    ("AutomaticDownload", 0, "0"),
+    ("SoftwareUpdate", 1, "does not exist"),
+    ("GuestEnabled", 0, "1"),
+    ("softwareupdate -l", 0, "* Label: macOS 27.0.1-27.0.1\n\tTitle: macOS, Action: restart"),
+    ("launchctl print", 113, ""),
+    ("netstat", 0, ""),
+]
+
+
+def test_macos():
+    s = Fake("darwin", MAC_WEAK)
+    rep = g.scan(s, "client", "standard", Path(tempfile.mkdtemp()), with_intel=False)
+    f = by_id(rep)
+    assert f["mac.firewall"]["tier"] == g.AUTO
+    assert f["mac.filevault"]["tier"] == g.MANUAL
+    assert f["mac.autoupdate"]["detail"] == "未設定: AutomaticDownload"  # キーなしは既定オンとして扱う
+    assert f["mac.os_updates"]["tier"] == g.CONFIRM  # 再起動が要るので承認制
+    assert f["mac.guest"]["status"] == "weak"
+    assert 0 <= rep["score"] < 50
+
+
+def test_rollback_journal():
+    ans = [("--setglobalstate", 0, "ok")] + MAC_WEAK
+    s = Fake("darwin", ans)
+    sd = Path(tempfile.mkdtemp())
+    rep = g.scan(s, "client", "standard", sd, with_intel=False)
+    rep["findings"] = [x for x in rep["findings"] if x["id"] == "mac.firewall"]
+    res = g.apply(s, rep, sd, auto=True, approve=set(), dry=False)
+    assert res[0]["result"] == "fixed"
+    s.calls.clear()
+    out = g.rollback(s, sd, None, None)
+    assert out == [{"id": "mac.firewall", "result": "rolled-back"}]
+    assert any("--setglobalstate off" in c for c in s.calls)
+    assert g.rollback(s, sd, None, None) == []  # 二重に戻さない
+
+
+def test_ssh_dropin_and_lockout_guard():
+    sshd_t = "passwordauthentication yes\npermitrootlogin yes\nmaxauthtries 6\n"
+    ans = [("launchctl print", 113, ""), ("pgrep", 0, "yes"), ("sshd -T", 0, sshd_t)]
+    s = Fake("linux", ans, tools={"sshd"})
+    s.files["/etc/ssh/sshd_config"] = "Include /etc/ssh/sshd_config.d/*.conf\n"
+    # 鍵が登録されていない → パスワード禁止は締め出しになるので手作業扱い
+    f = {x["id"]: x for x in g.check_ssh(s)}
+    assert f["ssh.hardening"]["tier"] == g.MANUAL
+    s.files["/root/.ssh/authorized_keys"] = "ssh-ed25519 AAAA test\n"
+    f = {x["id"]: x for x in g.check_ssh(s)}
+    x = f["ssh.hardening"]
+    assert x["tier"] == g.CONFIRM and x["fix"][0]["write"].endswith("00-mamori.conf")
+    assert {"rm": g.SSH_DROPIN} in x["undo"]
+    # 他の設定に負けて反映されない場合は失敗扱いで巻き戻す
+    rep = {"findings": [x]}
+    s.answers = [("sshd -t", 0, ""), ("sshd -T", 0, sshd_t)] + ans
+    res = g.apply(s, rep, Path(tempfile.mkdtemp()), auto=False, approve={"ssh.hardening"}, dry=False)
+    assert res[0]["result"] == "failed" and g.SSH_DROPIN not in s.files
+
+
+def test_auto_never_touches_confirm():
+    s = Fake("linux", [("ufw status", 0, "Status: inactive"), ("ss -ltnH", 0,
+                       "LISTEN 0 128 0.0.0.0:22 0.0.0.0:*\nLISTEN 0 5 127.0.0.1:5432 0.0.0.0:*\n")],
+             tools={"ufw"})
+    rep = g.scan(s, "server", "standard", Path(tempfile.mkdtemp()), with_intel=False)
+    fw = by_id(rep)["linux.firewall"]
+    assert fw["tier"] == g.CONFIRM and fw["fix"][0]["cmd"] == ["ufw", "allow", "22/tcp"]
+    assert len(fw["fix"]) == 2, "localhost の 5432 は許可しない"
+    res = g.apply(s, rep, Path(tempfile.mkdtemp()), auto=True, approve=set(), dry=True)
+    assert "linux.firewall" not in [r["id"] for r in res]
+
+
+if __name__ == "__main__":
+    n = 0
+    for name, fn in list(globals().items()):
+        if name.startswith("test_") and callable(fn):
+            fn()
+            n += 1
+            print("ok", name)
+    print(f"{n} passed")

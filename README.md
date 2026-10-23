@@ -43,6 +43,29 @@ cron例（毎朝9時）:
 0 9 * * * cd /path/to/mamori && MAMORI_INVENTORY=inventory.json bash run.sh >> data/cron.log 2>&1
 ```
 
+### 守りを自動で固める（Mamori Guard・macOS / Windows / Linux）
+端末とサーバーの守り設定（ファイアウォール・自動更新・暗号化・SSH・Defender・SMBv1 等）と、入っているソフトを
+最新の脅威情報（悪用確認済みの脆弱性）と照合し、**安全で元に戻せる項目は自動で直し**、毎日自動で点検します。
+
+```bash
+# macOS / Linux（端末・サーバー）
+curl -fsSL https://mamori.teai.io/kit.tar.gz | tar xz && sudo bash mamori/tools/guard.sh
+```
+```powershell
+# Windows（管理者として開いた PowerShell）
+iwr https://mamori.teai.io/kit.tar.gz -OutFile $env:TEMP\mamori.tgz; tar xzf $env:TEMP\mamori.tgz -C $env:TEMP; & $env:TEMP\mamori\tools\guard.ps1
+```
+
+| 区分 | 扱い | 例 |
+|---|---|---|
+| auto | 毎日自動で直す | 自動アップデート・セキュリティ更新・Defender・SMBv1停止・Gatekeeper・端末のファイアウォール・悪用中の脆弱性があるソフトの更新（brew/apt/dnf/winget） |
+| confirm | `fix --approve <ID>` で承認した時だけ | SSHのパスワード入室禁止（鍵登録がある時のみ・反映を実測確認）・サーバーのファイアウォール（今開いている番号は許可）・再起動を伴うOS更新・UAC・RDPのNLA・fail2ban |
+| manual | 手順を案内 | FileVault / BitLocker / SIP |
+
+- 点検だけ: `python3 agent/mamori_guard.py scan`（`--json` あり）
+- 戻す: `sudo python3 agent/mamori_guard.py rollback`（変更は journal.jsonl に元に戻す手順つきで記録）
+- 止める: `... uninstall`　先手（Sente）を使っている場合、`guard.sh` が Mamori スキルも入れるので「守りを固めて」で呼べます
+
 ### 参加者キーの確認と共有
 ```bash
 export MAMORI_KEY=<組織専用キー>
