@@ -697,7 +697,7 @@ curl -s https://mamori.teai.io/api/observations -H "X-Mamori-Key: $MAMORI_KEY"</
 <p class="muted">エンドポイント一覧は <a href="/api">APIリファレンス</a>。</p></div>
 
 <div class="card"><h2>方法2: MCPサーバー（Claude Desktop / Claude Code / Sente）</h2>
-<p><b>かんたん導入：</b><code>curl -fsSL https://mamori.teai.io/install.sh | bash</code> で Claude Code・Codex・Sente に自動登録（<a href="/start#ai">手順</a>）。</p>
+<p><b>かんたん導入：</b><code>curl -fsSL https://mamori.teai.io/install.sh | bash</code> で Claude Code・Codex・Sente に自動登録。Windows は PowerShell で <code>irm https://mamori.teai.io/install.ps1 | iex</code>（<a href="/start#ai">手順</a>）。</p>
 <p>照合キット（<a href="/kit.tar.gz">kit.tar.gz</a>）に <code>mcp/mamori_mcp.py</code> として同梱。エージェントに「mamori_latest」「mamori_share」などのツールとして見えます。</p>
 <h3 style="margin:.8rem 0 .3rem">Claude Desktop / Claude Code の設定例</h3>
 <pre style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.9rem;font-size:.85rem;overflow-x:auto">{
@@ -969,7 +969,7 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path.startswith("/media/"):
             return self._media(path[len("/media/"):])
-        self.send_response(200 if path in ("/", "/healthz", "/install.sh", "/start", "/intel", "/my", "/post", "/api", "/status", "/about", "/agent") else 404)
+        self.send_response(200 if path in ("/", "/healthz", "/install.sh", "/install.ps1", "/start", "/intel", "/my", "/post", "/api", "/status", "/about", "/agent") else 404)
         self.end_headers()
 
     def _caller(self) -> dict | None:
@@ -1023,6 +1023,12 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, _page("start.html"), "text/html; charset=utf-8")
         elif path == "/intel":
             self._send(200, render_intel(), "text/html; charset=utf-8")
+        elif path == "/install.ps1":
+            f = APP_DIR / "tools" / "install.ps1"
+            if f.exists():
+                self._send(200, f.read_bytes(), "text/plain; charset=utf-8")
+            else:
+                self._json(404, {"error": "not found"})
         elif path == "/install.sh":
             f = APP_DIR / "tools" / "install.sh"
             if f.exists():
