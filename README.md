@@ -30,6 +30,7 @@ Mamoriは、最新の攻撃情報・脆弱性情報を自動で集め、自分�
 ```bash
 curl -fsSL https://mamori.teai.io/install.sh | bash                       # 読むだけ（鍵不要）
 curl -fsSL https://mamori.teai.io/install.sh | MAMORI_KEY=mk_... bash     # 共有もする
+curl -fsSL https://mamori.teai.io/install.sh | bash -s -- --guard         # 毎日の自動保護も（sudo 1回）
 curl -fsSL https://mamori.teai.io/install.sh | bash -s -- --uninstall     # 外す
 ```
 ```powershell

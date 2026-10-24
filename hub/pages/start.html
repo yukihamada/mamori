@@ -43,6 +43,8 @@ table{width:100%;border-collapse:collapse;font-size:14px;margin:8px 0}td,th{bord
 <p>鍵を入れるとき：<code>$env:MAMORI_KEY='受け取った鍵'; irm https://mamori.teai.io/install.ps1 | iex</code>　外すとき：<code>$env:MAMORI_UNINSTALL='1'; irm https://mamori.teai.io/install.ps1 | iex</code></p>
 <p>攻撃情報を<b>読むだけなら鍵は要りません</b>。共有もするときは、先に<a href="/account">鍵を発行</a>して、こう貼ります：</p>
 <pre><code>curl -fsSL https://mamori.teai.io/install.sh | MAMORI_KEY='受け取った鍵' bash</code></pre>
+<p><b>この端末の守りも毎日自動で固める</b>なら、最後に <code>-s -- --guard</code> を付けます（Windows は先頭に <code>$env:MAMORI_GUARD='1';</code>）。管理者のパスワードを1回だけ聞き、安全で元に戻せる項目だけを直して、毎日9:17に自動で点検します。締め出しや再起動のおそれがある項目は勝手に直さず、AI が説明して承認をもらってから直します。</p>
+<pre><code>curl -fsSL https://mamori.teai.io/install.sh | bash -s -- --guard</code></pre>
 <p>鍵は <code>~/.config/mamori/key</code>（本人だけが読める設定）に保存され、AI の設定ファイルには書きません。最後に「✅ 脅威情報を取得できました」と出れば成功です。</p></div></div>
 <div class="step"><div class="n">2</div><div><h3>AI を開き直して、話しかける</h3>
 <p>「<b>Mamori で最新の攻撃情報を教えて</b>」<br>「<b>Mamori で共有されている攻撃の手口を見せて</b>」（鍵が必要）<br>「<b>この攻撃を Mamori に共有して：/wp-login.php への総当たり</b>」（鍵が必要）<br>「<b>Mamori で守りを固めて</b>」（この端末の設定を点検し、安全な項目だけ直します）</p>
