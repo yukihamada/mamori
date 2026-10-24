@@ -21,8 +21,16 @@ jobs:
       - run: python3 tests/test_guard.py
       - run: python3 tests/test_install.py
 
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python tests/test_install_ps1.py
+
   deploy:
-    needs: test
+    needs: [test, test-windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
