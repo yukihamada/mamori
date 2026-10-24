@@ -200,7 +200,10 @@ os.replace(tmp, p)
     $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     $glog = Join-Path ([IO.Path]::GetTempPath()) ("mamori-guard-" + [guid]::NewGuid().ToString("N") + ".log")
     $q = { param($x) "'" + ($x -replace "'", "''") + "'" }
-    $inner = "`$env:PYTHONIOENCODING='utf-8'; & $(& $q $py) $(& $q $guardPy) fix --auto *>> $(& $q $glog); if (`$LASTEXITCODE -ne 0) { '__MAMORI_FIXFAIL__' | Out-File -Append -Encoding utf8 $(& $q $glog) }; & $(& $q $py) $(& $q $guardPy) install --hour $hour *>> $(& $q $glog); if (`$LASTEXITCODE -eq 0) { '__MAMORI_INSTALLED__' | Out-File -Append -Encoding utf8 $(& $q $glog) }"
+    $L = & $q $glog
+    $inner = "`$env:PYTHONIOENCODING='utf-8'; try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch {}; " +
+      "`$o = & $(& $q $py) $(& $q $guardPy) fix --auto 2>&1 | ForEach-Object { `"`$_`" }; `$rc = `$LASTEXITCODE; if (`$o) { Add-Content -Encoding UTF8 -Path $L -Value `$o }; if (`$rc -ne 0) { Add-Content -Encoding UTF8 -Path $L -Value '__MAMORI_FIXFAIL__' }; " +
+      "`$o = & $(& $q $py) $(& $q $guardPy) install --hour $hour 2>&1 | ForEach-Object { `"`$_`" }; `$rc = `$LASTEXITCODE; if (`$o) { Add-Content -Encoding UTF8 -Path $L -Value `$o }; if (`$rc -eq 0) { Add-Content -Encoding UTF8 -Path $L -Value '__MAMORI_INSTALLED__' }"
     $elevated = $false
     if ($isAdmin) {
       $prevEap = $ErrorActionPreference; $ErrorActionPreference = "Continue"
