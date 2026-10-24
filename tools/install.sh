@@ -107,7 +107,7 @@ as_root() {
     local ap; ap="$(mktemp)"
     cat > "$ap" <<'ASK'
 #!/bin/sh
-exec osascript -e 'text returned of (display dialog "守 Mamori：この Mac の守りを固めて、毎日の自動保護を登録します。\n管理者のパスワードを入れてください。" default answer "" with hidden answer with title "守 Mamori" with icon caution)'
+exec osascript -e 'text returned of (display dialog "守 Mamori：この Mac の守りを固めて、毎日の自動保護を登録します。\n管理者のパスワードを入れてください。" default answer "" with hidden answer with title "守 Mamori" with icon caution giving up after 180)'
 ASK
     chmod 700 "$ap"
     SUDO_ASKPASS="$ap" sudo -A "$@"; local rc=$?
