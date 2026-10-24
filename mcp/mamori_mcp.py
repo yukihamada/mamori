@@ -15,8 +15,12 @@ Mamori（https://mamori.teai.io）を使うための小さなMCPサーバー。
     }
   }
 
-キーは環境変数 MAMORI_KEY で渡す（コード・引数に書かない）。
-公開ツール（mamori_latest / mamori_intel_summary）はキー不要。
+かんたん導入（Claude Code / Codex / Sente に自動登録）:
+  curl -fsSL https://mamori.teai.io/install.sh | bash
+
+キーは環境変数 MAMORI_KEY か ~/.config/mamori/key（権限600）から読む。
+設定ファイル・引数にキーを書かない。公開ツール（mamori_latest / mamori_intel_summary）はキー不要。
+動作確認: python3 mamori_mcp.py --selftest
 """
 from __future__ import annotations
 
@@ -27,18 +31,37 @@ import urllib.request
 import urllib.error
 
 HUB = os.environ.get("MAMORI_HUB", "https://mamori.teai.io").rstrip("/")
-KEY = os.environ.get("MAMORI_KEY", "")
+KEY_FILE = os.path.expanduser(os.environ.get("MAMORI_KEY_FILE", "~/.config/mamori/key"))
+
+
+def _load_key() -> str:
+    k = os.environ.get("MAMORI_KEY", "").strip()
+    if k:
+        return k
+    try:
+        with open(KEY_FILE, encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+KEY = _load_key()
 PROTOCOL_VERSION = "2024-11-05"
-SERVER_INFO = {"name": "mamori", "version": "0.1.0"}
+SUPPORTED_VERSIONS = {"2024-11-05", "2025-03-26", "2025-06-18"}
+SERVER_INFO = {"name": "mamori", "version": "0.2.0"}
+
+RO = {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True}
 
 TOOLS = [
     {
         "name": "mamori_latest",
+        "annotations": dict(RO, title="mamori_latest"),
         "description": "最新の脅威インテル（CISA KEV・JPCERT/CC。TLP:CLEAR・公開）を取得する。キー不要。",
         "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
     },
     {
         "name": "mamori_intel_summary",
+        "annotations": dict(RO, title="mamori_intel_summary"),
         "description": "直近の脅威インテルの件数・最新公開日・タイトル上位を日本語で要約して返す。キー不要。",
         "inputSchema": {
             "type": "object",
@@ -48,11 +71,13 @@ TOOLS = [
     },
     {
         "name": "mamori_observations",
+        "annotations": dict(RO, title="mamori_observations"),
         "description": "参加者が共有した攻撃の観測を読む（自分のキーのTLP範囲まで）。要 MAMORI_KEY。",
         "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
     },
     {
         "name": "mamori_share",
+        "annotations": {"title": "mamori_share", "readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": True},
         "description": "攻撃の観測をMamoriに共有する。自動匿名化（IP /24・メール除去・時刻丸め）のうえ90日で自動削除。TLP:REDは投稿禁止。要 MAMORI_KEY。",
         "inputSchema": {
             "type": "object",
@@ -67,6 +92,7 @@ TOOLS = [
     },
     {
         "name": "mamori_whoami",
+        "annotations": dict(RO, title="mamori_whoami"),
         "description": "MAMORI_KEY の有効性を確認し、組織の記号（org_hash）とTLP範囲を返す。",
         "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
     },
@@ -77,12 +103,12 @@ def _http(method: str, path: str, body: dict | None = None, use_key: bool = Fals
     url = HUB + path
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(url, data=data, method=method)
-    req.add_header("User-Agent", "mamori-mcp/0.1.0")
+    req.add_header("User-Agent", "mamori-mcp/0.2.0")
     if data is not None:
         req.add_header("Content-Type", "application/json")
     if use_key:
         if not KEY:
-            return 0, {"error": "MAMORI_KEY が設定されていません（環境変数で渡してください）"}
+            return 0, {"error": "キーが未設定です。https://mamori.teai.io/account で発行し、~/.config/mamori/key に保存するか環境変数 MAMORI_KEY で渡してください（公開の脅威情報はキー不要）"}
         req.add_header("X-Mamori-Key", KEY)
     try:
         with urllib.request.urlopen(req, timeout=30) as r:
@@ -171,7 +197,26 @@ def error(req_id, code: int, message: str):
     send({"jsonrpc": "2.0", "id": req_id, "error": {"code": code, "message": message}})
 
 
+def selftest() -> int:
+    """導入確認: ツール一覧と、キー不要の要約ツールを1回実行する。"""
+    print(f"Mamori MCP {SERVER_INFO['version']} / hub {HUB}")
+    print("ツール:", ", ".join(t["name"] for t in TOOLS))
+    out = call_tool("mamori_intel_summary", {"limit": 3})["content"][0]["text"]
+    print(out)
+    ok = out.startswith("脅威インテル:")
+    if KEY:
+        w = call_tool("mamori_whoami", {})["content"][0]["text"]
+        print(w)
+        ok = ok and w.startswith("キーは有効")
+    else:
+        print("キー: 未設定（読むだけなら不要。共有するときは https://mamori.teai.io/account で発行）")
+    print("OK" if ok else "NG")
+    return 0 if ok else 1
+
+
 def main() -> int:
+    if "--selftest" in sys.argv:
+        return selftest()
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -183,7 +228,8 @@ def main() -> int:
         method = req.get("method")
         req_id = req.get("id")
         if method == "initialize":
-            result(req_id, {"protocolVersion": PROTOCOL_VERSION,
+            asked = (req.get("params") or {}).get("protocolVersion")
+            result(req_id, {"protocolVersion": asked if asked in SUPPORTED_VERSIONS else PROTOCOL_VERSION,
                             "capabilities": {"tools": {}},
                             "serverInfo": SERVER_INFO})
         elif method == "notifications/initialized":
