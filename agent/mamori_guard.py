@@ -104,6 +104,18 @@ class System:
             return json.loads(r.read().decode("utf-8"))
 
 
+def parse_softwareupdate(out: str) -> list[dict]:
+    """softwareupdate -l の出力を [{label, title, version, restart, macos}] にする。"""
+    items: list[dict] = []
+    for m in re.finditer(r"^\s*\* Label: (.+)\n(.*)$", out, re.M):
+        label, info = m.group(1).strip(), m.group(2)
+        title = (re.search(r"Title: ([^,]+)", info) or re.search(r"(.*)", label)).group(1).strip()
+        version = (re.search(r"Version: ([^,]+)", info) or re.search(r"-([\d.]+)", label) or re.search(r"()", "")).group(1).strip()
+        items.append({"label": label, "title": title, "version": version,
+                      "restart": "restart" in info.lower(), "macos": title.lower().startswith("macos")})
+    return items
+
+
 def state_dir(s: System) -> Path:
     if os.environ.get("MAMORI_STATE_DIR"):
         return Path(os.environ["MAMORI_STATE_DIR"])
@@ -285,14 +297,23 @@ def check_macos(s: System, profile: str, level: str) -> list[dict]:
                                  "GuestEnabled", "-bool", "true")]))
     if os.environ.get("MAMORI_SKIP_OSUPDATE") != "1":
         rc, out = s.run(["softwareupdate", "-l"], 180)
-        labels = re.findall(r"^\s*\* Label: (.+)$", out, re.M)
-        if rc == 0 and labels:
-            restart = "restart" in out.lower()
+        entries = parse_softwareupdate(out)
+        _, cur = s.run(["sw_vers", "-productVersion"], 10)
+        cur_major = (cur.strip().split(".") or [""])[0]
+        # macOS のメジャー版の更新（例: 26 → 27）は対象外。開発ツールが動かなくなることがあるので本人が別に判断する
+        major = [e for e in entries if e["macos"] and cur_major and e["version"].split(".")[0] != cur_major]
+        todo = [e for e in entries if e not in major]
+        note = ("／メジャー版（" + ", ".join(e["title"] if e["version"] in e["title"] else e["title"] + " " + e["version"] for e in major) +
+                "）は対象外。上げるかは別に判断してください") if major else ""
+        if rc == 0 and todo:
+            restart = any(e["restart"] for e in todo)
             f.append(finding("mac.os_updates", "未適用のOSアップデート", "weak",
-                             f"{len(labels)}件: " + ", ".join(labels[:4]), weight=4,
+                             f"{len(todo)}件: " + ", ".join(e["label"] for e in todo[:4]), weight=4,
                              tier=CONFIRM if restart else AUTO,
-                             fix=[C("softwareupdate", "-i", "-a")],
-                             how=("再起動が必要なものを含みます。作業の区切りで適用してください" if restart else "")))
+                             fix=[C("softwareupdate", "-i", *[e["label"] for e in todo])],
+                             how=("再起動が必要なものを含みます。作業の区切りで適用してください" if restart else "") + note))
+        elif rc == 0 and major:
+            f.append(finding("mac.os_updates", "未適用のOSアップデート", "ok", "なし" + note, weight=4))
         elif rc == 0:
             f.append(finding("mac.os_updates", "未適用のOSアップデート", "ok", "なし", weight=4))
     f += check_ssh(s)

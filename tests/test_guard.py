@@ -159,6 +159,27 @@ def test_macos():
     assert 0 <= rep["score"] < 50
 
 
+SU_REAL = ("* Label: Safari27.0TahoeAuto-27.0\n\tTitle: Safari, Version: 27.0, Size: 249465KiB, Recommended: YES, \n"
+           "* Label: macOS Tahoe 26.7.1-25G241\n\tTitle: macOS Tahoe 26.7.1, Version: 26.7.1, Size: 4145338KiB, Recommended: YES, Action: restart, \n"
+           "* Label: macOS 27.0.1-26A434\n\tTitle: macOS 27.0.1, Version: 27.0.1, Size: 11867036KiB, Recommended: YES, Action: restart, \n")
+
+
+def test_macos_skips_major_upgrade():
+    base = [a for a in MAC_WEAK if a[0] != "softwareupdate -l"]
+    s = Fake("darwin", base + [("softwareupdate -l", 0, SU_REAL), ("sw_vers", 0, "26.6\n")])
+    f = by_id(g.scan(s, "client", "standard", Path(tempfile.mkdtemp()), with_intel=False))
+    o = f["mac.os_updates"]
+    cmd = " ".join(o["fix"][0]["cmd"]) if isinstance(o["fix"][0], dict) else " ".join(o["fix"][0])
+    assert "macOS 27.0.1-26A434" not in cmd and "-a" not in cmd.split()  # メジャー版は入れない・全部入れない
+    assert "macOS Tahoe 26.7.1-25G241" in cmd and "Safari27.0TahoeAuto-27.0" in cmd
+    assert o["tier"] == g.CONFIRM and "メジャー版" in o["how"]
+    # メジャー版だけ残っているときは「なし」扱い（承認待ちにしない）
+    only = "* Label: macOS 27.0.1-26A434\n\tTitle: macOS 27.0.1, Version: 27.0.1, Action: restart, \n"
+    s = Fake("darwin", base + [("softwareupdate -l", 0, only), ("sw_vers", 0, "26.6\n")])
+    o = by_id(g.scan(s, "client", "standard", Path(tempfile.mkdtemp()), with_intel=False))["mac.os_updates"]
+    assert o["status"] == "ok" and "メジャー版" in o["detail"]
+
+
 def test_rollback_journal():
     ans = [("--setglobalstate", 0, "ok")] + MAC_WEAK
     s = Fake("darwin", ans)
