@@ -32,6 +32,9 @@ curl -fsSL https://mamori.teai.io/install.sh | bash                       # 読�
 curl -fsSL https://mamori.teai.io/install.sh | MAMORI_KEY=mk_... bash     # 共有もする
 curl -fsSL https://mamori.teai.io/install.sh | bash -s -- --uninstall     # 外す
 ```
+```powershell
+irm https://mamori.teai.io/install.ps1 | iex                               # Windows（試験=tests/test_install_ps1.py・CI windows-latest）
+```
 入っている AI ツールを見つけて MCP サーバー `mamori` を登録し、自己テストまで行う。鍵は `~/.config/mamori/key`（600）に保存し、AI の設定には書かない。
 読むだけのツールは読み取り専用の印つき（確認なしで動く）、`mamori_share` は送信なので毎回確認。試験＝`python3 tests/test_install.py`。
 

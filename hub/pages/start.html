@@ -32,12 +32,15 @@ table{width:100%;border-collapse:collapse;font-size:14px;margin:8px 0}td,th{bord
 <p class="cap">参加ガイド動画（約2分15秒）。製品の紹介は<a href="#intro">下の紹介動画</a>へ。</p>
 
 <h2>必要なもの</h2>
-<p>MacかLinuxのパソコンと「ターミナル」（文字で命令を打つアプリ。WindowsはWSL）／Python 3.9以上／curl。追加のソフトは要りません。Macで初めて python3 を使うときは「コマンドライン・デベロッパ・ツール」を入れる案内が出るので、そのまま入れてください。</p>
+<p>Mac・Linux・Windows のパソコンと「ターミナル」（文字で命令を打つアプリ。Windows は PowerShell）／Python 3.9以上／curl。追加のソフトは要りません。Macで初めて python3 を使うときは「コマンドライン・デベロッパ・ツール」を入れる案内が出るので、そのまま入れてください。</p>
 
 <h2 id="ai">いちばん簡単：ふだん使っている AI に入れる</h2>
 <p>Claude Code・Codex・Sente のどれかを使っているなら、コマンドを1行貼るだけで始められます。入っているものを自動で見つけて、全部に登録します。</p>
 <div class="step"><div class="n">1</div><div><h3>ターミナルにこの1行を貼る</h3>
 <pre><code>curl -fsSL https://mamori.teai.io/install.sh | bash</code></pre>
+<p><b>Windows</b> は PowerShell（スタートメニューで「PowerShell」と検索。管理者でなくて大丈夫）にこちらを貼ります：</p>
+<pre><code>irm https://mamori.teai.io/install.ps1 | iex</code></pre>
+<p>鍵を入れるとき：<code>$env:MAMORI_KEY='受け取った鍵'; irm https://mamori.teai.io/install.ps1 | iex</code>　外すとき：<code>$env:MAMORI_UNINSTALL='1'; irm https://mamori.teai.io/install.ps1 | iex</code></p>
 <p>攻撃情報を<b>読むだけなら鍵は要りません</b>。共有もするときは、先に<a href="/account">鍵を発行</a>して、こう貼ります：</p>
 <pre><code>curl -fsSL https://mamori.teai.io/install.sh | MAMORI_KEY='受け取った鍵' bash</code></pre>
 <p>鍵は <code>~/.config/mamori/key</code>（本人だけが読める設定）に保存され、AI の設定ファイルには書きません。最後に「✅ 脅威情報を取得できました」と出れば成功です。</p></div></div>
