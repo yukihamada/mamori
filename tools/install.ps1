@@ -3,6 +3,7 @@
 #   irm https://mamori.teai.io/install.ps1 | iex
 #   $env:MAMORI_KEY='mk_...'; irm https://mamori.teai.io/install.ps1 | iex      # 共有もするとき
 #   $env:MAMORI_UNINSTALL='1'; irm https://mamori.teai.io/install.ps1 | iex     # 外す
+#   $env:MAMORI_GUARD='1'; irm https://mamori.teai.io/install.ps1 | iex         # 毎日の自動保護も入れる
 #   $env:MAMORI_ONLY='claude,codex'                                              # 入れる先を絞る
 #
 # やること（Mac/Linux 版 install.sh と同じ）:
@@ -101,6 +102,7 @@ os.replace(tmp, p)
     if ((& $want "codex") -and (& $has "codex")) { if (& $run "codex" @("mcp", "remove", "mamori")) { & $ok "Codex から外しました" } else { & $skip "Codex: 登録なし" } }
     if ((& $want "sente") -and (Test-Path (Join-Path $userHome ".config\sente\sente.json"))) { if (& $senteTool "remove") { & $ok "Sente から外しました" } }
     Remove-Item (Join-Path $userHome ".claude\skills\mamori") -Recurse -Force -ErrorAction SilentlyContinue
+    if ($env:MAMORI_GUARD -eq "1") { & $run "schtasks" @("/Delete", "/F", "/TN", "Mamori Guard") | Out-Null; & $ok "毎日の自動保護を止めました（タスク スケジューラ）" }
     Write-Host "キット（$kitDir）とキー（$keyFile）は残しています。不要なら手で削除してください。"
     return
   }
@@ -190,12 +192,53 @@ os.replace(tmp, p)
     return
   }
 
+  # 5. 毎日の自動保護（MAMORI_GUARD=1）
+  if ($env:MAMORI_GUARD -eq "1") {
+    Write-Host "毎日の自動保護（この端末の守りを点検し、安全で元に戻せる項目だけ直します）"
+    $guardPy = if ($env:MAMORI_GUARD_PY) { $env:MAMORI_GUARD_PY } else { Join-Path $kitDir "mamori\agent\mamori_guard.py" }
+    $hour = if ($env:MAMORI_HOUR) { [int]$env:MAMORI_HOUR } else { 9 }
+    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    $glog = Join-Path ([IO.Path]::GetTempPath()) ("mamori-guard-" + [guid]::NewGuid().ToString("N") + ".log")
+    $q = { param($x) "'" + ($x -replace "'", "''") + "'" }
+    $inner = "`$env:PYTHONIOENCODING='utf-8'; & $(& $q $py) $(& $q $guardPy) fix --auto *>> $(& $q $glog); if (`$LASTEXITCODE -ne 0) { '__MAMORI_FIXFAIL__' | Out-File -Append -Encoding utf8 $(& $q $glog) }; & $(& $q $py) $(& $q $guardPy) install --hour $hour *>> $(& $q $glog); if (`$LASTEXITCODE -eq 0) { '__MAMORI_INSTALLED__' | Out-File -Append -Encoding utf8 $(& $q $glog) }"
+    $elevated = $false
+    if ($isAdmin) {
+      $prevEap = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+      & ([scriptblock]::Create($inner)); $elevated = $true
+      $ErrorActionPreference = $prevEap
+    } else {
+      try {
+        $enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($inner))
+        $shell = (Get-Process -Id $PID).Path
+        Start-Process -FilePath $shell -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", $enc -Verb RunAs -Wait -WindowStyle Hidden
+        $elevated = $true
+      } catch { $elevated = $false }
+    }
+    if ($elevated -and (Test-Path $glog)) {
+      $lines = Get-Content $glog -Encoding UTF8
+      $lines | Where-Object { $_ -notlike "__MAMORI_*" } | ForEach-Object { Write-Host "     $_" }
+      if ($lines -contains "__MAMORI_FIXFAIL__") { & $ng "直す処理の一部が失敗しました（上の表示を確認してください）" }
+      if ($lines -contains "__MAMORI_INSTALLED__") { & $ok "管理者として毎日 ${hour}:17 に自動保護を登録しました" }
+      else { & $ng "自動保護の登録に失敗しました" }
+    } else {
+      & $ng "管理者になれなかったため、ユーザー権限で直せる範囲だけにします（あとでもう一度実行すれば管理者で入ります）"
+      $prevEap = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+      & $py $guardPy fix --auto 2>&1 | ForEach-Object { Write-Host "     $_" }
+      $o = & $py $guardPy install --hour $hour 2>&1 | ForEach-Object { "$_" }
+      if ($LASTEXITCODE -eq 0) { & $ok "ユーザー単位で登録: $($o -join ' ')" } else { & $ng "登録に失敗: $($o -join ' ')" }
+      $ErrorActionPreference = $prevEap
+    }
+    Remove-Item $glog -Force -ErrorAction SilentlyContinue
+    Write-Host "     承認が要る項目は、AI に「Mamori で守りを固めて」と頼むと、説明して承認をもらってから直します。"
+  }
+
   Write-Host ""
   if ($found) {
     Write-Host "準備できました。AI ツールを開き直して、こう話しかけてください:"
     Write-Host "  「Mamori で最新の攻撃情報を教えて」"
     Write-Host "  「Mamori で共有されている攻撃の手口を見せて」（キーが必要）"
     Write-Host "  「この攻撃を Mamori に共有して: /wp-login.php への総当たり」（キーが必要）"
+    Write-Host "  「Mamori で守りを固めて」（点検して、承認をもらってから直します）"
     Write-Host "外すとき: `$env:MAMORI_UNINSTALL='1'; irm https://mamori.teai.io/install.ps1 | iex"
   } else {
     Write-Host "Claude Code / Codex / Sente が見つかりませんでした。入れてから再実行するか、MCP 設定に次を登録してください:"

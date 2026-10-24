@@ -131,11 +131,35 @@ def one_shell(shell: str, base: str) -> None:
           f"[{shell}] 無効なキーは保存せず続ける")
     check(key.read_text().strip() == GOOD_KEY, f"[{shell}] 無効なキーで上書きしない")
 
+    # MAMORI_GUARD=1（CI は管理者）: 偽の Guard で fix --auto と install を確認
+    glog = tmp / "guard.log"
+    gstub = tmp / "guard_stub.py"
+    gstub.write_text("import sys\nopen(%r,'a',encoding='utf-8').write(' '.join(sys.argv[1:])+'\\n')\nprint('stub', ' '.join(sys.argv[1:]))\n" % str(glog), encoding="utf-8")
+    g = run_ps(shell, base, {**env, "MAMORI_GUARD": "1", "MAMORI_GUARD_PY": str(gstub), "MAMORI_ONLY": "codex", "MAMORI_HOUR": "7"})
+    print(g.stdout[-1200:], g.stderr[-600:], flush=True)
+    gl = glog.read_text(encoding="utf-8") if glog.exists() else ""
+    check(g.returncode == 0 and "管理者として毎日 7:17" in g.stdout, f"[{shell}] MAMORI_GUARD: 管理者として登録")
+    check("fix --auto" in gl and "install --hour 7" in gl, f"[{shell}] MAMORI_GUARD: fix --auto と install を実行")
+
     un = run_ps(shell, base, {**env, "MAMORI_UNINSTALL": "1"})
     cfg = json.loads((sdir / "sente.json").read_text(encoding="utf-8"))
     check(un.returncode == 0 and "mamori" not in cfg["mcp"] and "other" in cfg["mcp"]
           and "mamori_mamori_intel_summary" not in cfg.get("permission", {}), f"[{shell}] 外すと mamori だけ消える")
     check("claude mcp remove -s user mamori" in log.read_text(errors="replace"), f"[{shell}] 外すと Claude Code からも外す")
+
+
+def real_guard(base: str) -> None:
+    """使い捨ての CI ランナー上で本物の Guard を動かし、タスク スケジューラ登録まで確かめる。"""
+    print("\n=== real guard (powershell) ===", flush=True)
+    tmp = Path(tempfile.mkdtemp(prefix="mamori-real-"))
+    env = {**os.environ, "MAMORI_HUB": base, "MAMORI_HOME_DIR": str(tmp), "MAMORI_GUARD": "1", "MAMORI_ONLY": "none"}
+    r = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command",
+                        f"irm {base}/install.ps1 | iex"], env=env, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace", timeout=1500)
+    print(r.stdout[-3000:], r.stderr[-1000:], flush=True)
+    check("毎日 9:17 に自動保護を登録しました" in r.stdout, "[real] Windows で Guard を管理者として登録")
+    q = subprocess.run(["schtasks", "/Query", "/TN", "Mamori Guard"], capture_output=True, text=True, errors="replace")
+    check(q.returncode == 0, "[real] タスク スケジューラに「Mamori Guard」がある")
 
 
 def main() -> int:
@@ -154,6 +178,8 @@ def main() -> int:
     check(bool(shells), "PowerShell が見つかる")
     for s in shells:
         one_shell(s, base)
+    if shutil.which("powershell"):
+        real_guard(base)
     srv.shutdown()
     print(f"\n{'NG' if FAILS else 'OK'}: {len(FAILS)} failures")
     return 1 if FAILS else 0
