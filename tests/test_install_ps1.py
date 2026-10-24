@@ -139,6 +139,11 @@ def one_shell(shell: str, base: str) -> None:
 
 
 def main() -> int:
+    for st in (sys.stdout, sys.stderr):
+        try:
+            st.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
     if os.name != "nt":
         print("skip: Windows 専用の試験です")
         return 0
