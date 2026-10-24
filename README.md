@@ -26,6 +26,15 @@ Mamoriは、最新の攻撃情報・脆弱性情報を自動で集め、自分�
 
 ## 使い方
 
+### AI エージェントから使う（Claude Code / Codex / Sente・いちばん簡単）
+```bash
+curl -fsSL https://mamori.teai.io/install.sh | bash                       # 読むだけ（鍵不要）
+curl -fsSL https://mamori.teai.io/install.sh | MAMORI_KEY=mk_... bash     # 共有もする
+curl -fsSL https://mamori.teai.io/install.sh | bash -s -- --uninstall     # 外す
+```
+入っている AI ツールを見つけて MCP サーバー `mamori` を登録し、自己テストまで行う。鍵は `~/.config/mamori/key`（600）に保存し、AI の設定には書かない。
+読むだけのツールは読み取り専用の印つき（確認なしで動く）、`mamori_share` は送信なので毎回確認。試験＝`python3 tests/test_install.py`。
+
 ### 脅威レポートを受け取るだけ（キー不要）
 ```bash
 curl -s https://mamori.teai.io/api/latest
