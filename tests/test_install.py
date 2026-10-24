@@ -112,6 +112,31 @@ def main() -> int:
         check(bad.returncode == 0 and "保存せずに続けます" in bad.stdout, "無効なキーは保存しない")
         check(key.read_text().strip() == "mk_test_ok", "無効なキーで既存キーを上書きしない")
 
+        # --guard: 偽の sudo（成功）→ 管理者として1回の昇格で fix --auto と install を実行
+        glog = tmp / "guard.log"
+        gstub = tmp / "guard_stub.py"
+        gstub.write_text("import os,sys\nopen(%r,'a').write(('root ' if os.environ.get('FAKE_ROOT') else 'user ')+' '.join(sys.argv[1:])+'\\n')\nprint('stub', ' '.join(sys.argv[1:]))\n" % str(glog))
+        (bindir / "sudo").write_text('#!/bin/sh\necho "sudo $*" >> "%s"\n[ -n "$FAKE_SUDO_FAIL" ] && exit 1\nwhile [ "${1#-}" != "$1" ]; do shift; done\nFAKE_ROOT=1 exec "$@"\n' % log)
+        (bindir / "sudo").chmod(0o755)
+        for n in ("launchctl", "crontab"):
+            shim(bindir, n, log)
+        la = home / "Library" / "LaunchAgents"
+        la.mkdir(parents=True)
+        (la / "io.teai.mamori.guard.plist").write_text("old")
+        genv = {**env, "MAMORI_GUARD_PY": str(gstub)}
+        g = run_install(genv, "--guard", "--only", "codex")
+        print(g.stdout[-1200:], g.stderr[-400:])
+        gl = glog.read_text()
+        check(g.returncode == 0 and "管理者として毎日 9:17" in g.stdout, "--guard: 管理者として登録")
+        check("root fix --auto" in gl and "root install --hour 9" in gl, "--guard: 管理者で fix --auto と install を実行")
+        check(log.read_text().count("sudo /bin/sh") == 1, "--guard: 昇格は1回だけ")
+        check(not (la / "io.teai.mamori.guard.plist").exists(), "--guard: 古いユーザー単位の常駐を外す")
+        glog.write_text("")
+        g2 = run_install({**genv, "FAKE_SUDO_FAIL": "1"}, "--guard", "--hour", "7", "--only", "codex")
+        gl = glog.read_text()
+        check(g2.returncode == 0 and "ユーザー単位で登録" in g2.stdout and "user install --hour 7" in gl,
+              "--guard: 管理者になれなければユーザー権限で登録")
+
         un = run_install(env, "--uninstall")
         cfg = json.loads((sdir / "sente.json").read_text())
         check(un.returncode == 0 and "mamori" not in cfg["mcp"] and "other" in cfg["mcp"], "外すと Sente から mamori だけ消える")

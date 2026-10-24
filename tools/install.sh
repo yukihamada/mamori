@@ -3,6 +3,7 @@
 #
 #   curl -fsSL https://mamori.teai.io/install.sh | bash
 #   curl -fsSL https://mamori.teai.io/install.sh | MAMORI_KEY=mk_... bash     # 共有もするとき
+#   curl -fsSL https://mamori.teai.io/install.sh | bash -s -- --guard           # 毎日の自動保護も入れる
 #   curl -fsSL https://mamori.teai.io/install.sh | bash -s -- --uninstall       # 外す
 #
 # やること:
@@ -11,7 +12,9 @@
 #   3. 入っている AI ツールに MCP サーバー「mamori」を登録
 #        Claude Code: claude mcp add -s user / Codex: codex mcp add / Sente: ~/.config/sente/sente.json
 #   4. 自己テスト（脅威情報を1回取得・キーがあれば有効性確認）
-# オプション: --only claude,codex,sente  --no-skill  --uninstall
+#   5. --guard のとき: この端末の守りを点検し、安全で元に戻せる項目だけ直して、毎日の自動保護を登録
+#      （管理者のパスワードを1回だけ聞く。締め出し・再起動のおそれがある項目は直さず、承認待ちとして表示）
+# オプション: --only claude,codex,sente  --no-skill  --guard  --hour 9  --uninstall
 set -euo pipefail
 
 HUB="${MAMORI_HUB:-https://mamori.teai.io}"
@@ -21,6 +24,8 @@ MCP="$KIT_DIR/mamori/mcp/mamori_mcp.py"
 ONLY="claude,codex,sente"
 SKILL=1
 UNINSTALL=0
+GUARD="${MAMORI_GUARD:-0}"
+HOUR="${MAMORI_HOUR:-9}"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -28,6 +33,8 @@ while [ $# -gt 0 ]; do
     --only=*) ONLY="${1#*=}"; shift ;;
     --no-skill) SKILL=0; shift ;;
     --uninstall) UNINSTALL=1; shift ;;
+    --guard) GUARD=1; shift ;;
+    --hour) HOUR="$2"; shift 2 ;;
     -h|--help) sed -n '2,16p' "$0" 2>/dev/null || true; exit 0 ;;
     *) echo "不明なオプション: $1" >&2; exit 2 ;;
   esac
@@ -88,12 +95,66 @@ os.replace(tmp, p)
 PYEOF
 }
 
+GUARD_PY="${MAMORI_GUARD_PY:-$KIT_DIR/mamori/agent/mamori_guard.py}"  # MAMORI_GUARD_PY は試験用
+
+# 管理者として実行する。端末があればそこでパスワードを聞き、無ければ macOS のパスワード画面で本人に聞く。
+as_root() {
+  if [ "$(id -u)" = 0 ]; then "$@"; return; fi
+  command -v sudo >/dev/null 2>&1 || return 1
+  if sudo -n true 2>/dev/null; then sudo "$@"; return; fi
+  if [ -t 0 ] || { [ -r /dev/tty ] && (: </dev/tty) 2>/dev/null && [ -t 1 ]; }; then sudo "$@"; return; fi
+  if [ "$(uname -s)" = Darwin ] && command -v osascript >/dev/null 2>&1; then
+    local ap; ap="$(mktemp)"
+    cat > "$ap" <<'ASK'
+#!/bin/sh
+exec osascript -e 'text returned of (display dialog "守 Mamori：この Mac の守りを固めて、毎日の自動保護を登録します。\n管理者のパスワードを入れてください。" default answer "" with hidden answer with title "守 Mamori" with icon caution giving up after 180)'
+ASK
+    chmod 700 "$ap"
+    SUDO_ASKPASS="$ap" sudo -A "$@"; local rc=$?
+    rm -f "$ap"; return $rc
+  fi
+  return 1
+}
+
+# 以前の「ユーザー単位」の常駐を外す（管理者の常駐と二重に動かないように）
+drop_user_guard() {
+  local pl="$HOME/Library/LaunchAgents/io.teai.mamori.guard.plist"
+  if [ -f "$pl" ]; then launchctl bootout "gui/$(id -u)" "$pl" >/dev/null 2>&1 || true; rm -f "$pl"; fi
+  if command -v crontab >/dev/null 2>&1 && crontab -l 2>/dev/null | grep -q mamori_guard.py; then
+    crontab -l 2>/dev/null | grep -v mamori_guard.py | crontab - || true
+  fi
+}
+
+setup_guard() {
+  echo "毎日の自動保護（この端末の守りを点検し、安全で元に戻せる項目だけ直します）"
+  drop_user_guard
+  # 管理者の処理は1回の昇格にまとめる（パスワードを聞くのは1回だけ）
+  local out
+  out="$(as_root /bin/sh -c 'echo __MAMORI_ROOT__; "$0" "$1" fix --auto || echo __MAMORI_FIXFAIL__; "$0" "$1" install --hour "$2" && echo __MAMORI_INSTALLED__' "$PY" "$GUARD_PY" "$HOUR" 2>&1)" || true
+  if printf '%s' "$out" | grep -q __MAMORI_ROOT__; then
+    printf '%s\n' "$out" | grep -v '^__MAMORI_' | sed 's/^/     /'
+    printf '%s' "$out" | grep -q __MAMORI_FIXFAIL__ && ng "直す処理の一部が失敗しました（上の表示を確認してください）"
+    if printf '%s' "$out" | grep -q __MAMORI_INSTALLED__; then ok "管理者として毎日 ${HOUR}:17 に自動保護を登録しました"
+    else ng "自動保護の登録に失敗しました"; return 1; fi
+  else
+    ng "管理者になれなかったため、ユーザー権限で直せる範囲だけにします（あとで --guard を付けて再実行すれば管理者で入ります）"
+    "$PY" "$GUARD_PY" fix --auto 2>&1 | sed 's/^/     /' || true
+    if out="$("$PY" "$GUARD_PY" install --hour "$HOUR" 2>&1)"; then ok "ユーザー単位で登録: $out"
+    else ng "登録に失敗: $out"; return 1; fi
+  fi
+  echo "     承認が要る項目は、AI に「Mamori で守りを固めて」と頼むと、説明して承認をもらってから直します。"
+}
+
 if [ "$UNINSTALL" = 1 ]; then
   echo "守 Mamori を外します"
   if want claude && command -v claude >/dev/null 2>&1; then claude mcp remove -s user mamori >/dev/null 2>&1 && ok "Claude Code から外しました" || skip "Claude Code: 登録なし"; fi
   if want codex && command -v codex >/dev/null 2>&1; then codex mcp remove mamori >/dev/null 2>&1 && ok "Codex から外しました" || skip "Codex: 登録なし"; fi
   if want sente && [ -f "$HOME/.config/sente/sente.json" ]; then sente_config remove && ok "Sente から外しました"; fi
   rm -rf "$HOME/.claude/skills/mamori"
+  if [ "$GUARD" = 1 ] && [ -f "$GUARD_PY" ]; then
+    drop_user_guard
+    as_root "$PY" "$GUARD_PY" uninstall >/dev/null 2>&1 && ok "毎日の自動保護を止めました" || ng "自動保護を止められませんでした（sudo python3 $GUARD_PY uninstall）"
+  fi
   echo "キット（$KIT_DIR）とキー（$KEY_FILE）は残しています。不要なら手で削除してください。"
   exit 0
 fi
@@ -170,6 +231,8 @@ else
   ng "自己テストに失敗しました:"; sed 's/^/     /' "$TMP/selftest.txt"; exit 1
 fi
 
+if [ "$GUARD" = 1 ]; then setup_guard || true; fi
+
 echo
 if [ "$FOUND" = 1 ]; then
   cat <<'MSG'
@@ -177,6 +240,7 @@ if [ "$FOUND" = 1 ]; then
   「Mamori で最新の攻撃情報を教えて」
   「Mamori で共有されている攻撃の手口を見せて」（キーが必要）
   「この攻撃を Mamori に共有して: /wp-login.php への総当たり」（キーが必要）
+  「Mamori で守りを固めて」（点検して、承認をもらってから直します）
 外すとき: curl -fsSL https://mamori.teai.io/install.sh | bash -s -- --uninstall
 MSG
 else
