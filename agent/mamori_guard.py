@@ -709,6 +709,67 @@ def load_intel(s: System, sd: Path) -> tuple[list[dict], str]:
 # --------------------------------------------------------------------------
 # 点検 → 採点
 # --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# 共通: AI の API キーの平文置き場（全OS・読むだけ。値は記録も表示もしない）
+# --------------------------------------------------------------------------
+AI_KEY_PATTERNS = [
+    ("Anthropic", re.compile(r"sk-ant-[A-Za-z0-9_-]{20,}")),
+    ("OpenRouter", re.compile(r"sk-or-v1-[A-Za-z0-9]{20,}")),
+    ("OpenAI", re.compile(r"sk-(?:proj-)?[A-Za-z0-9_-]{32,}")),
+    ("Google", re.compile(r"AIza[0-9A-Za-z_-]{35}")),
+    ("xAI", re.compile(r"xai-[A-Za-z0-9]{40,}")),
+    ("Groq", re.compile(r"gsk_[A-Za-z0-9]{40,}")),
+    ("Hugging Face", re.compile(r"hf_[A-Za-z0-9]{30,}")),
+]
+# 起動のたびに全プロセスの環境変数へ入る場所と、置きっぱなしになりやすい場所
+AI_KEY_FILES = [".env", ".zshrc", ".zprofile", ".zshenv", ".bashrc", ".bash_profile", ".profile",
+                ".config/fish/config.fish", ".netrc", ".npmrc",
+                "Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1",
+                "Documents/PowerShell/Microsoft.PowerShell_profile.ps1"]
+
+
+def _user_homes(s: System) -> list[str]:
+    home = s.env.get("HOME") or s.env.get("USERPROFILE")
+    homes = [home] if home else []
+    if s.is_admin():  # 毎日の常駐は管理者で動くので、全ユーザーのホームを見る
+        for base in ("/home", "/Users", "C:/Users"):
+            try:
+                homes += [str(p) for p in Path(base).iterdir() if p.is_dir()]
+            except Exception:
+                pass
+    return list(dict.fromkeys(homes))
+
+
+def check_ai_keys(s: System) -> list[dict]:
+    hits: dict[str, set[str]] = {}
+    for h in _user_homes(s):
+        for rel in AI_KEY_FILES:
+            t = s.read(f"{h}/{rel}")
+            if not t:
+                continue
+            names = {n for n, p in AI_KEY_PATTERNS
+                     if p.search(t) and not (n == "OpenAI" and not _openai_only(t))}
+            if names:
+                hits[f"{h}/{rel}"] = names
+    if not hits:
+        return [finding("ai.plaintext_keys", "AI の API キーの平文置き場", "ok",
+                        "よく使う設定ファイルに見つかりませんでした", weight=2, admin=False)]
+    providers = sorted({n for v in hits.values() for n in v})
+    where = "、".join(sorted(hits))
+    return [finding("ai.plaintext_keys", "AI の API キーの平文置き場", "weak",
+                    f"{len(hits)} 件のファイルに {'/'.join(providers)} のキー: {where}",
+                    tier=MANUAL, weight=3, admin=False,
+                    how="使っていないキーは各社の管理画面で削除し、残すキーには上限額を設定。"
+                        "シェル設定への直書きはやめて Keychain / 資格情報マネージャー等へ移す。"
+                        "漏れた心当たりがあれば先に再発行（rotate）してから利用履歴を確認")]
+
+
+def _openai_only(t: str) -> bool:
+    """sk-ant- / sk-or-v1- を OpenAI と二重に数えない。"""
+    return any(not m.group(0).startswith(("sk-ant-", "sk-or-"))
+               for m in AI_KEY_PATTERNS[2][1].finditer(t))
+
+
 def detect_profile(s: System) -> str:
     if s.os == "windows":
         rc, out = s.ps("(Get-CimInstance Win32_OperatingSystem).ProductType")
@@ -721,6 +782,7 @@ def detect_profile(s: System) -> str:
 def scan(s: System, profile: str, level: str, sd: Path, with_intel: bool = True) -> dict:
     checks = {"darwin": check_macos, "linux": check_linux, "windows": check_windows}[s.os]
     f = checks(s, profile, level)
+    f += check_ai_keys(s)
     intel_src = "skipped"
     if with_intel:
         intel, intel_src = load_intel(s, sd)

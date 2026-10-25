@@ -235,3 +235,26 @@ if __name__ == "__main__":
             n += 1
             print("ok", name)
     print(f"{n} passed")
+
+
+def test_ai_plaintext_keys_found_without_leaking_values():
+    s = Fake("darwin", MAC_WEAK, admin=False)
+    s.env["HOME"] = "/Users/u"
+    ant = "sk-ant-api03-" + "a" * 40
+    s.files["/Users/u/.zshrc"] = f"export ANTHROPIC_API_KEY={ant}\n"
+    s.files["/Users/u/.env"] = "GOOGLE_API_KEY=AIza" + "b" * 35 + "\n"
+    rep = g.scan(s, "client", "standard", Path(tempfile.mkdtemp()), with_intel=False)
+    f = by_id(rep)["ai.plaintext_keys"]
+    assert f["status"] == "weak" and f["tier"] == g.MANUAL
+    assert "Anthropic" in f["detail"] and "Google" in f["detail"]
+    assert "OpenAI" not in f["detail"]  # sk-ant- を OpenAI と二重に数えない
+    assert ant not in json.dumps(rep) and "bbbb" not in json.dumps(rep)
+    assert not f["fix"]  # 自動では触らない
+
+
+def test_ai_plaintext_keys_ok_when_absent():
+    s = Fake("linux", [], admin=False)
+    s.env["HOME"] = "/home/u"
+    s.files["/home/u/.bashrc"] = "export ANTHROPIC_API_KEY=$(security find-generic-password -w)\n"
+    f = by_id(g.scan(s, "server", "standard", Path(tempfile.mkdtemp()), with_intel=False))
+    assert f["ai.plaintext_keys"]["status"] == "ok"
