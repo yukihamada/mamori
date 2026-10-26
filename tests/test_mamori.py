@@ -283,6 +283,14 @@ def test_hub() -> None:
                   "mamori/run.sh" in names
                   and any(n.startswith("mamori/agent/") for n in names))
 
+            req = urllib.request.Request(base + "/kit.tar.gz", method="HEAD")
+            with urllib.request.urlopen(req, timeout=5) as r:
+                head_len = r.headers.get("Content-Length")
+                head_type = r.headers.get("Content-Type")
+            check("HEAD /kit.tar.gz is 200 with size",
+                  head_len == str(len(kit)) and head_type == "application/gzip",
+                  f"len={head_len} type={head_type}")
+
             # media: only whitelisted names, no traversal
             code, _ = get("/media/../server.py")
             check("media traversal blocked", code == 404)

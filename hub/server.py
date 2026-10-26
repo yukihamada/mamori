@@ -1151,10 +1151,32 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.write(chunk)
                 remaining -= len(chunk)
 
+    def _kit_head(self):
+        if "kit" not in _kit_cache:
+            _kit_cache["kit"] = build_kit()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/gzip")
+        self.send_header("Content-Disposition", 'attachment; filename="mamori-kit.tar.gz"')
+        self.send_header("Content-Length", str(len(_kit_cache["kit"])))
+        self.end_headers()
+
     def do_HEAD(self):
         path = urlparse(self.path).path
         if path.startswith("/media/"):
             return self._media(path[len("/media/"):])
+        if path == "/kit.tar.gz":
+            return self._kit_head()
+        if path == "/MamoriCheck.zip":
+            f = APP_DIR / "MamoriCheck.zip"
+            if not f.exists():
+                self.send_response(404)
+            else:
+                self.send_response(200)
+                self.send_header("Content-Type", "application/zip")
+                self.send_header("Content-Disposition", 'attachment; filename="MamoriCheck.zip"')
+                self.send_header("Content-Length", str(f.stat().st_size))
+            self.end_headers()
+            return
         self.send_response(200 if path in ("/", "/healthz", "/install.sh", "/install.ps1", "/start", "/intel", "/my", "/post", "/api", "/status", "/about", "/agent", "/newsletter") else 404)
         self.end_headers()
 
@@ -1226,11 +1248,7 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/kit.tar.gz":
             if "kit" not in _kit_cache:
                 _kit_cache["kit"] = build_kit()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/gzip")
-            self.send_header("Content-Disposition", 'attachment; filename="mamori-kit.tar.gz"')
-            self.send_header("Content-Length", str(len(_kit_cache["kit"])))
-            self.end_headers()
+            self._kit_head()  # ヘッダーはHEADと共通
             self.wfile.write(_kit_cache["kit"])
         elif path == "/MamoriCheck.zip":
             f = APP_DIR / "MamoriCheck.zip"
