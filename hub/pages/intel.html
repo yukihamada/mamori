@@ -12,6 +12,8 @@ a{color:var(--accent)}h1{font-size:28px;margin:.2em 0}.lead{color:var(--muted);f
 ul{list-style:none;padding:0;margin:16px 0}li{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:8px 0;font-size:14px;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline}
 li.fresh{border-color:var(--accent)}li a{flex-basis:100%;text-decoration:none;color:var(--text)}li a:hover{text-decoration:underline}
 .d{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}.src{color:var(--muted);font-size:12px}
+li.match{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.filter-note{background:var(--surface);border:1px solid var(--accent);border-radius:10px;padding:10px 14px;font-size:13px;margin:12px 0}
 .tag{font-size:12px;font-weight:700;border-radius:999px;padding:1px 10px;border:1px solid}
 .tag.red{color:var(--red);border-color:var(--red)}.tag.amber{color:var(--amber);border-color:var(--amber)}.tag.gray{color:var(--muted);border-color:var(--border)}
 .due{font-size:12px;color:var(--muted)}.new{color:var(--accent);font-weight:700}
@@ -22,6 +24,7 @@ li.fresh{border-color:var(--accent)}li a{flex-basis:100%;text-decoration:none;co
 <p class="lead">アメリカのCISAが公表した「実際に悪用された脆弱性」と、日本のJPCERT/CCの注意喚起・週報を、ハブが6時間ごとに自動で集めています。登録不要。<br>
 最終取得: <b>__UPDATED__</b> ／ 全 __COUNT__ 件 ／ <span class="new">緑の枠</span>は直近7日の新着</p>
 <div class="legend"><span class="tag red">悪用確認済み</span>すでに攻撃に使われている　<span class="tag amber">注意喚起</span>国内で対応が急がれる　<span class="tag gray">週報</span>まとめ</div>
+__FILTER_NOTE__
 <ul>
 __ROWS__
 </ul>

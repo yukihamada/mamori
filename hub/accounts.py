@@ -57,7 +57,7 @@ class Store:
 
     # --- 読み書き ---------------------------------------------------------
     def _empty(self) -> dict:
-        return {"accounts": {}, "keys": {}, "logins": {}, "sessions": {}}
+        return {"accounts": {}, "keys": {}, "logins": {}, "sessions": {}, "newsletter": {}}
 
     def _read(self) -> dict:
         try:
@@ -82,7 +82,7 @@ class Store:
                 data = json.loads(self.path.read_text()) if self.path.exists() else self._empty()
             except Exception:  # noqa: BLE001
                 data = self._empty()
-            for k in ("accounts", "keys", "logins", "sessions"):
+            for k in ("accounts", "keys", "logins", "sessions", "newsletter"):
                 data.setdefault(k, {})
             out = fn(data)
             now = time.time()
@@ -176,6 +176,45 @@ class Store:
 
     def csrf(self, sid: str) -> str:
         return hmac.new(self.salt.encode(), ("csrf:" + (sid or "")).encode(), hashlib.sha256).hexdigest()[:32]
+
+    # --- メルマガ購読 -------------------------------------------------------
+    def nl_token(self, purpose: str, email: str) -> str:
+        """確認・解約リンク用の署名トークン。DBに保存せず HMAC のみで検証する。"""
+        return hmac.new(self.salt.encode(), f"nl:{purpose}:{email}".encode(),
+                        hashlib.sha256).hexdigest()[:32]
+
+    def nl_subscribe_pending(self, email: str) -> None:
+        """購読申込（未確認）。確認リンクを開くと active になる。"""
+        def fn(d):
+            rec = d["newsletter"].setdefault(email, {})
+            rec.update({"pending": True, "active": False, "requested_at": time.time()})
+        self._update(fn)
+
+    def nl_confirm(self, email: str) -> bool:
+        """確認リンク経由で購読を有効化。"""
+        def fn(d):
+            rec = d["newsletter"].setdefault(email, {})
+            rec.update({"pending": False, "active": True, "confirmed_at": time.time(),
+                        "unsubscribed_at": None})
+            return True
+        return self._update(fn)
+
+    def nl_unsubscribe(self, email: str) -> bool:
+        """解約。レコードは残し active を落とす（再購読はいつでも可能）。"""
+        def fn(d):
+            rec = d["newsletter"].get(email)
+            if not rec:
+                return False
+            rec.update({"active": False, "pending": False, "unsubscribed_at": time.time()})
+            return True
+        return self._update(fn)
+
+    def nl_status(self, email: str) -> dict | None:
+        return self._read()["newsletter"].get(email)
+
+    def nl_active_emails(self) -> list[str]:
+        """配信対象（active な購読者）の一覧。配信スクリプト用。"""
+        return sorted(e for e, r in self._read()["newsletter"].items() if r.get("active"))
 
 
 # --- メール ----------------------------------------------------------------

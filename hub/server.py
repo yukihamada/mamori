@@ -335,14 +335,22 @@ SRC_LABEL = {"cisa_kev": ("悪用確認済み", "CISA KEV", "red"),
              "jpcert_ics": ("制御システム", "JPCERT/CC", "gray")}
 
 
-def render_intel() -> bytes:
-    """/api/latest を人が読める一覧にする（運営の照合結果は出さない）。"""
+def render_intel(products: list[str] | None = None) -> bytes:
+    """/api/latest を人が読める一覧にする（運営の照合結果は出さない）。
+    products が指定された場合、タイトルに製品名を含む項目だけを強調表示する。"""
     try:
         b = json.loads(LATEST_FILE.read_text())
     except Exception:  # noqa: BLE001
         b = {"objects": [], "created": ""}
     objs = [o for o in b.get("objects", []) if o.get("title")]
     objs.sort(key=lambda o: o.get("published") or "", reverse=True)
+    matched_set: set[int] = set()
+    if products:
+        kws = [p.lower() for p in products if p]
+        for i, o in enumerate(objs):
+            t = (o.get("title") or "").lower()
+            if any(k in t for k in kws):
+                matched_set.add(i)
     newest = max((o.get("published") or "" for o in objs), default="")
     import datetime as _dt
     try:
@@ -350,17 +358,26 @@ def render_intel() -> bytes:
     except ValueError:
         cut = ""
     rows = []
-    for o in objs:
+    for i, o in enumerate(objs):
         kind, src, color = SRC_LABEL.get(o.get("source"), ("情報", o.get("source", ""), "gray"))
         due = f'<span class="due">米国政府の対応期限 {_esc(o.get("due_date"))}</span>' if o.get("due_date") else ""
-        fresh = ' class="fresh"' if cut and (o.get("published") or "") >= cut else ""
-        rows.append(f'<li{fresh}><span class="d">{_esc(o.get("published") or "—")}</span>'
+        cls = ' class="fresh"' if cut and (o.get("published") or "") >= cut else ""
+        if i in matched_set:
+            cls = ' class="match"'
+        rows.append(f'<li{cls}><span class="d">{_esc(o.get("published") or "—")}</span>'
                     f'<span class="tag {color}">{kind}</span><span class="src">{_esc(src)}</span>'
                     f'<a href="{_esc(o.get("url"))}" rel="noopener" target="_blank">{_esc(o.get("title"))}</a>{due}</li>')
     created = (b.get("created") or "")[:16].replace("T", " ")
     html = _page("intel.html").decode()
     html = html.replace("__UPDATED__", _esc(created + " UTC" if created else "—"))
     html = html.replace("__COUNT__", str(len(objs))).replace("__ROWS__", "\n".join(rows))
+    if products:
+        note = (f'<p class="filter-note">🔍 選択中の製品: <b>{_esc(", ".join(products))}</b> — '
+                f'該当する項目を緑の枠で強調しています（{len(matched_set)}件）。'
+                f'<a href="/intel">すべて表示に戻す</a></p>')
+        html = html.replace("__FILTER_NOTE__", note)
+    else:
+        html = html.replace("__FILTER_NOTE__", "")
     return html.encode()
 
 
@@ -417,23 +434,54 @@ a:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offse
 footer{border-top:1px solid var(--border);margin-top:3rem;padding:1.5rem;text-align:center;color:var(--muted);font-size:.85rem}
 footer a{margin:0 .5rem}
 .en-note{background:#1f2630;border-left:3px solid var(--accent2);padding:.8rem 1rem;border-radius:0 8px 8px 0;font-size:.85rem;color:var(--muted);margin-top:1.5rem}
+.check-card{background:var(--card);border:1px solid var(--accent);border-radius:12px;padding:1.4rem 1.5rem;max-width:760px;margin:0 auto 1.8rem;text-align:left}
+.check-title{margin:0 0 .3rem;font-weight:700;font-size:1.05rem}
+.check-sub{margin:0 0 .9rem;color:var(--muted);font-size:.88rem}
+.check-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:.45rem .9rem;margin-bottom:1rem}
+.check-grid label{display:flex;align-items:center;gap:.45rem;font-size:.92rem;cursor:pointer;padding:.25rem .4rem;border-radius:6px}
+.check-grid label:hover{background:rgba(63,185,80,.08)}
+.check-grid input{accent-color:var(--accent);width:1rem;height:1rem}
+.check-actions{display:flex;gap:.7rem;flex-wrap:wrap;align-items:center;margin:0}
+.check-note{margin:.7rem 0 0;font-size:.8rem;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media(max-width:600px){.hero h1{font-size:1.8rem}.stat b{font-size:1.4rem}}
 </style></head><body>
 <a class="skip" href="#main">本文へスキップ</a>
 <header>
 <a class="brand" href="/">🛡 守 <span>Mamori</span></a>
-<nav style="font-size:.9rem"><a href="/intel" style="color:var(--muted);text-decoration:none;margin-left:1rem">脅威一覧</a><a href="/my" style="color:var(--muted);text-decoration:none;margin-left:1rem">マイページ</a><a href="/post" style="color:var(--muted);text-decoration:none;margin-left:1rem">共有する</a><a href="/api" style="color:var(--muted);text-decoration:none;margin-left:1rem">API</a><a href="/status" style="color:var(--muted);text-decoration:none;margin-left:1rem">ステータス</a><a href="/about" style="color:var(--muted);text-decoration:none;margin-left:1rem">仕組み</a><a href="/agent" style="color:var(--muted);text-decoration:none;margin-left:1rem">エージェント</a></nav>
+<nav style="font-size:.9rem"><a href="/intel" style="color:var(--muted);text-decoration:none;margin-left:1rem">脅威一覧</a><a href="/newsletter" style="color:var(--muted);text-decoration:none;margin-left:1rem">メルマガ</a><a href="/my" style="color:var(--muted);text-decoration:none;margin-left:1rem">マイページ</a><a href="/post" style="color:var(--muted);text-decoration:none;margin-left:1rem">共有する</a><a href="/api" style="color:var(--muted);text-decoration:none;margin-left:1rem">API</a><a href="/status" style="color:var(--muted);text-decoration:none;margin-left:1rem">ステータス</a><a href="/about" style="color:var(--muted);text-decoration:none;margin-left:1rem">仕組み</a><a href="/agent" style="color:var(--muted);text-decoration:none;margin-left:1rem">エージェント</a></nav>
 </header>
 <main id="main">
 <section class="hero">
 <svg class="shield-svg" viewBox="0 0 64 64" width="72" height="72" role="img" aria-label="Mamoriの盾ロゴ"><path d="M32 3 6 13v16c0 16 11 27 26 32 15-5 26-16 26-32V13L32 3z" fill="none" stroke="var(--accent)" stroke-width="3.5" stroke-linejoin="round"/><path d="M20 32l8 8 16-16" fill="none" stroke="var(--accent)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-<h1>みんなでレポートして、<br>みんなで守る。</h1>
-<p class="tag">ある1社が受けた攻撃の知見が、全員の防御になる。</p>
-<p class="lead">Mamoriは、最新の攻撃情報・脆弱性情報（CISA KEV／JPCERT/CC）を6時間ごとに自動収集し、あなたの環境に関係あるか照合、対策の下書きまで出すセキュリティエージェントです。仕組み・API・データ取り扱いはすべて公開。まずは認証不要の公開インテルから試せます。</p>
+<h1>うちの製品、<br>今狙われてる？</h1>
+<p class="tag">登録不要・30秒で確認。CISA KEV／JPCERT/CC の最新情報から、自社に関係ある脅威だけを絞り込めます。</p>
+<p class="lead">Mamoriは、最新の攻撃情報・脆弱性情報を6時間ごとに自動収集し、自社環境への影響を照合、対策の下書きまで出すセキュリティエージェントです。まずは下のチェックボックスで、使っている製品を選ぶだけ。キー・登録は不要です。</p>
+
+<div class="check-card" id="threat-check">
+<p class="check-title">🔍 自社に関係ある脅威チェック（キー不要・ブラウザ完結）</p>
+<p class="check-sub">使っている製品を選んでください。選択だけで下の「最新の脅威」が絞り込まれます。</p>
+<div class="check-grid" id="product-checks">
+<label><input type="checkbox" value="wordpress"> WordPress</label>
+<label><input type="checkbox" value="fortinet"> Fortinet (FortiOS/FortiGate)</label>
+<label><input type="checkbox" value="cisco"> Cisco (IOS/ASA/その他)</label>
+<label><input type="checkbox" value="microsoft"> Microsoft (Windows/Exchange)</label>
+<label><input type="checkbox" value="apache"> Apache (HTTP Server/Struts)</label>
+<label><input type="checkbox" value="nginx"> nginx</label>
+<label><input type="checkbox" value="vmware"> VMware</label>
+<label><input type="checkbox" value="citrix"> Citrix</label>
+<label><input type="checkbox" value="ivanti"> Ivanti</label>
+<label><input type="checkbox" value="openssl"> OpenSSL</label>
+</div>
+<p class="check-actions"><a class="btn primary" id="check-go" href="/intel">この条件で最新の脅威を見る →</a>
+<button class="btn ghost" id="check-clear" type="button">選択をクリア</button></p>
+<p class="check-note">※ 絞り込みはブラウザ内で完結し、選択内容はサーバーに送信されません。</p>
+</div>
+
 <div class="cta">
 <a class="btn primary" href="/start">参加ガイド（5分）</a>
-<a class="btn ghost" href="/intel">最新の脅威を見る（登録不要）</a>
+<a class="btn ghost" href="/intel">すべての脅威を見る（登録不要）</a>
+<a class="btn ghost" href="/newsletter">📬 メルマガで受け取る</a>
 <a class="btn ghost" href="/about">仕組みと他との違い</a>
 </div>
 <p style="margin-top:1rem;font-size:.85rem;color:var(--muted)"><a href="/kit.tar.gz">照合キット</a> = 自社スタックと脆弱性情報を突き合わせるローカル実行スクリプト一式（tar.gz・認証不要）</p>
@@ -476,6 +524,18 @@ Mamori v0.5 — an Enabler project<br>
 <a href="https://teai.io/mamori">製品ページ</a> · <a href="/terms">利用規約・データ取り扱い</a> · <a href="/docs/keys">キー管理運用手順</a> · <a href="/start">参加ガイド</a>
 </footer>
 <script>
+(function(){
+  var boxes=document.querySelectorAll('#product-checks input[type=checkbox]');
+  var go=document.getElementById('check-go');
+  var clear=document.getElementById('check-clear');
+  function update(){
+    var sel=[];boxes.forEach(function(b){if(b.checked)sel.push(b.value)});
+    go.href = sel.length ? '/intel?products='+encodeURIComponent(sel.join(',')) : '/intel';
+  }
+  boxes.forEach(function(b){b.addEventListener('change',update)});
+  if(clear){clear.addEventListener('click',function(){boxes.forEach(function(b){b.checked=false});update();});}
+  update();
+})();
 fetch('/api/stats').then(r=>r.json()).then(s=>{
   document.getElementById('stats').innerHTML =
     '<div class="stat"><b>'+s.participants+'</b><span>参加組織</span></div>'+
@@ -524,7 +584,7 @@ td,th{border-bottom:1px solid var(--border);padding:.55rem .4rem;text-align:left
 """
 
 NAV = """<header class="top"><a class="brand" href="/">🛡 守 <span>Mamori</span></a>
-<nav class="top"><a href="/intel">脅威一覧</a><a href="/my">マイページ</a><a href="/post">共有する</a><a href="/api">API</a><a href="/status">ステータス</a><a href="/about">仕組み</a><a href="/agent">エージェント</a><a href="/start">参加ガイド</a><a href="/account">鍵の発行</a></nav></header>"""
+<nav class="top"><a href="/intel">脅威一覧</a><a href="/newsletter">メルマガ</a><a href="/my">マイページ</a><a href="/post">共有する</a><a href="/api">API</a><a href="/status">ステータス</a><a href="/about">仕組み</a><a href="/agent">エージェント</a><a href="/start">参加ガイド</a><a href="/account">鍵の発行</a></nav></header>"""
 
 
 def render_my(caller, key: str) -> bytes:
@@ -570,7 +630,26 @@ def render_post(caller, key: str, msg: str = "", ok: bool | None = None) -> byte
 <form method="post" action="/post"><label for="k">参加者キー</label>
 <input id="k" name="key" type="password" autocomplete="off" placeholder="mk_..." required>
 <p style="margin-top:1rem"><button class="btn primary" type="submit">次へ</button></p></form>
-<p class="muted" style="font-size:.85rem">キーは <a href="/start">参加ガイド</a> の手順で発行されます（ベータ期間中は無料）。</p></div>"""
+<p class="muted" style="font-size:.85rem">キーは <a href="/start">参加ガイド</a> の手順で発行されます（ベータ期間中は無料）。</p></div>
+
+<div class="card"><h2>📝 記入例（キーなしで今すぐ読めます）</h2>
+<p class="muted">「何を書けばいいか分からない」方へ。実際の共有はこんな一文で十分です。IPアドレスの末尾とメールアドレスはハブ側で自動的に伏せられます。</p>
+<table>
+<tr><th>種別</th><th>記入例（このまま書いてOK）</th><th>TLP目安</th></tr>
+<tr><td>http_probe</td><td><code>/wp-login.php への総当たりを412回観測。同一 /24 から30分間に集中</code></td><td><span class="tag GREEN">GREEN</span></td></tr>
+<tr><td>payload</td><td><code>/etc/passwd を含むGETリクエストを検知。User-Agentは sqlmap/1.7</code></td><td><span class="tag GREEN">GREEN</span></td></tr>
+<tr><td>scanner</td><td><code>22番ポートへのSSHスキャン。NmapのSYNスキャン特徴あり</code></td><td><span class="tag CLEAR">CLEAR</span></td></tr>
+</table>
+<p class="muted" style="font-size:.85rem;margin-top:.8rem">種別の選び方：怪しいパスへのアクセス=http_probe／ログイン試行の繰り返し=brute_force／コマンドやSQL文らしき文字列=payload／網羅的な探索=scanner。迷ったら other で構いません。</p></div>
+
+<div class="card"><h2>🚫 書いてはいけない情報（投稿前チェック）</h2>
+<ul>
+<li><strong>自社ドメイン・社内ホスト名</strong>（例: <code>mail.example.co.jp</code>、<code>srv01.internal</code>）— ハブ側でも一部自動マスクしますが、投稿前にご自身で消してください</li>
+<li><strong>人の名前・メールアドレス</strong>（担当者名・顧客名など）</li>
+<li><strong>顧客・取引先を特定できる情報</strong></li>
+<li><strong>TLP:RED（共有不可）に指定された情報</strong> — 絶対に投稿しないでください</li>
+</ul>
+<p class="muted" style="font-size:.85rem">詳しくは <a href="/terms">データ取り扱い方針</a> をご確認ください。</p></div>"""
         return _shell("観測を共有 — 守 Mamori", body)
     flash = ""
     if msg:
@@ -867,6 +946,113 @@ def render_account_verify(token: str, email: str | None) -> bytes:
     return _shell("ログイン — 守 Mamori", body)
 
 
+# --- メルマガ（守 Mamori セキュリティ便り） -----------------------------------
+NL_TAGLINE = "CISA KEV・JPCERT/CC の更新と、いま実際に使われている突破の手口を、やさしい日本語で週1回まとめてお届けします。登録はメールアドレスだけ。1クリックでいつでも解除できます。"
+
+
+def render_newsletter(msg: str = "", ok: bool | None = None, email: str = "") -> bytes:
+    flash = ""
+    if msg:
+        cls = "ok" if ok else "err"
+        flash = f'<p class="{cls}">{_esc(msg)}</p>'
+    body = f"""<div class="card"><h2>📬 守 Mamori セキュリティ便り（無料メルマガ）</h2>
+<p class="muted">{_esc(NL_TAGLINE)}</p>
+{flash}
+<form method="post" action="/newsletter/subscribe"><label for="nl-email">メールアドレス</label>
+<input id="nl-email" name="email" type="email" autocomplete="email" placeholder="you@example.co.jp" value="{_esc(email)}" required>
+<p style="margin-top:1rem"><button class="btn primary" type="submit">確認メールを送る</button></p></form>
+<p class="muted" style="font-size:.85rem">なりすまし登録を防ぐため、確認メールのリンクを開いた時点で購読開始です。メールアドレスはメルマガ配信だけに使い、第三者には渡しません。解除は毎回のメールのリンクから1クリックでできます。</p></div>
+<div class="card"><h2>どんな内容が届くの？</h2>
+<ul>
+<li><strong>今週の3点</strong> — 悪用が確認された脆弱性と国内の注意喚起から、急ぐものだけを厳選</li>
+<li><strong>突破の手口をやさしく</strong> — 最近実際に使われた攻撃（アプリ解析→API攻撃、AIスキャン等）を図解レベルで解説</li>
+<li><strong>今日できる一手</strong> — 専門家でなくてもその日にできる対策を1つ</li>
+</ul>
+<p class="muted" style="font-size:.85rem">配信は週1回程度。派手な宣伝は送りません。最新の脅威は <a href="/intel">脅威一覧</a> でいつでも無料・登録不要で見られます。</p></div>"""
+    return _shell("セキュリティ便り（メルマガ） — 守 Mamori", body)
+
+
+def render_newsletter_confirm(email: str, token: str, valid: bool) -> bytes:
+    if not valid:
+        body = """<div class="card"><h2>確認リンクが使えません</h2>
+<p>リンクが古いか、書き換えられています。<a href="/newsletter">もう一度メールアドレスを登録してください</a>。</p></div>"""
+        return _shell("購読の確認 — 守 Mamori", body)
+    body = f"""<div class="card"><h2>購読を開始しますか？</h2>
+<p><strong>{_esc(email)}</strong> に「守 Mamori セキュリティ便り」をお届けします。</p>
+<form method="post" action="/newsletter/confirm">
+<input type="hidden" name="email" value="{_esc(email)}"><input type="hidden" name="t" value="{_esc(token)}">
+<p style="margin-top:1rem"><button class="btn primary" type="submit">購読を開始する</button></p></form>
+<p class="muted" style="font-size:.85rem">心当たりがない場合は、このページを閉じてください（何も起きません）。</p></div>"""
+    return _shell("購読の確認 — 守 Mamori", body)
+
+
+def render_newsletter_done(email: str) -> bytes:
+    body = f"""<div class="card"><h2>✅ 購読を開始しました</h2>
+<p><strong>{_esc(email)}</strong> 宛に、次号から「守 Mamori セキュリティ便り」をお届けします。</p>
+<p class="muted">届かないときは迷惑メールのフォルダを確認してください。解除はメールの末尾のリンクからいつでも1クリックでできます。</p>
+<p><a href="/intel">→ さっそく最新の脅威一覧を見る</a></p></div>"""
+    return _shell("購読開始 — 守 Mamori", body)
+
+
+def render_newsletter_unsub(email: str, ok: bool) -> bytes:
+    if ok:
+        body = f"""<div class="card"><h2>配信を停止しました</h2>
+<p><strong>{_esc(email)}</strong> への「守 Mamori セキュリティ便り」の配信を止めました。いつでも <a href="/newsletter">こちら</a> から再開できます。</p>
+<p class="muted">脅威一覧は登録不要でいつでも見られます: <a href="/intel">/intel</a></p></div>"""
+    else:
+        body = """<div class="card"><h2>解除リンクが使えません</h2>
+<p>リンクが古いか、すでに解除済みです。メール本文の最新の解除リンクをお試しください。</p></div>"""
+    return _shell("配信停止 — 守 Mamori", body)
+
+
+def _nl_link(purpose: str, email: str) -> str:
+    return f"{PUBLIC_URL}/newsletter/{purpose}?email={email}&t={STORE.nl_token(purpose, email)}"
+
+
+def _newsletter_subscribe_post(self):
+    ip = self.client_address[0]
+    form = self._form()
+    email = accounts.normalize_email(form.get("email", ""))
+    if not email:
+        return self._html(400, render_newsletter("メールアドレスの形を確認してください", False))
+    if not (_rate_ok(f"nl-ip:{ip}", 10) and _rate_ok(f"nl-mail:{email}", 3)):
+        return self._html(429, render_newsletter("送信が続いています。1時間ほどおいてからお試しください", False, email))
+    STORE.nl_subscribe_pending(email)
+    link = _nl_link("confirm", email)
+    sent = accounts.send_mail(email, "【守 Mamori】セキュリティ便りの購読確認",
+        "守 Mamori セキュリティ便り（週1回・無料）の購読申込を受け付けました。\n"
+        "下のリンクを開いて「購読を開始する」を押すと、登録が完了します。\n\n"
+        f"{link}\n\n"
+        "心当たりがない場合は、このメールを破棄してください（登録されません）。\n\n"
+        "守 Mamori — https://mamori.teai.io")
+    if not sent:
+        return self._html(503, render_newsletter("メールを送れませんでした。時間をおいてもう一度お試しください", False, email))
+    body = f"""<div class="card"><h2>📮 確認メールを送りました</h2>
+<p><strong>{_esc(email)}</strong> に購読確認のメールを送りました。メールのリンクを開いて「購読を開始する」を押すと、登録が完了します。</p>
+<p class="muted">数分たっても届かないときは、迷惑メールのフォルダを確認するか、<a href="/newsletter">もう一度送ってください</a>。</p></div>"""
+    return self._html(200, _shell("確認メール送信 — 守 Mamori", body))
+
+
+def _newsletter_confirm_post(self):
+    form = self._form()
+    email = accounts.normalize_email(form.get("email", ""))
+    token = form.get("t", "")
+    if not email or not hmac_eq(token, STORE.nl_token("confirm", email)):
+        return self._html(400, render_newsletter_confirm("", "", False))
+    STORE.nl_confirm(email)
+    return self._html(200, render_newsletter_done(email))
+
+
+def _newsletter_unsub_get(self):
+    q = parse_qs(urlparse(self.path).query)
+    email = accounts.normalize_email(q.get("email", [""])[0])
+    token = q.get("t", [""])[0]
+    if not email or not hmac_eq(token, STORE.nl_token("unsub", email)):
+        return self._html(400, render_newsletter_unsub("", False))
+    ok = STORE.nl_unsubscribe(email)
+    return self._html(200, render_newsletter_unsub(email, ok))
+
+
 def render_account(email: str, csrf: str, msg: str = "", new_key: str | None = None,
                    new_rec: dict | None = None) -> bytes:
     acct = STORE.account(email) or {"tlp_max": accounts.tlp_for_email(email)}
@@ -969,7 +1155,7 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path.startswith("/media/"):
             return self._media(path[len("/media/"):])
-        self.send_response(200 if path in ("/", "/healthz", "/install.sh", "/install.ps1", "/start", "/intel", "/my", "/post", "/api", "/status", "/about", "/agent") else 404)
+        self.send_response(200 if path in ("/", "/healthz", "/install.sh", "/install.ps1", "/start", "/intel", "/my", "/post", "/api", "/status", "/about", "/agent", "/newsletter") else 404)
         self.end_headers()
 
     def _caller(self) -> dict | None:
@@ -1022,7 +1208,9 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/start":
             self._send(200, _page("start.html"), "text/html; charset=utf-8")
         elif path == "/intel":
-            self._send(200, render_intel(), "text/html; charset=utf-8")
+            qs = parse_qs(urlparse(self.path).query)
+            products = [p.strip() for p in (qs.get("products", [""])[0].split(",")) if p.strip()]
+            self._send(200, render_intel(products or None), "text/html; charset=utf-8")
         elif path == "/install.ps1":
             f = APP_DIR / "tools" / "install.ps1"
             if f.exists():
@@ -1088,6 +1276,16 @@ class Handler(BaseHTTPRequestHandler):
             # メールのリンク先は確認ボタンだけ（メールソフトの自動プレビューでリンクが消費されないように）
             t = parse_qs(urlparse(self.path).query).get("t", [""])[0]
             self._html(200, render_account_verify(t, STORE.peek_login(t)))
+        elif path == "/newsletter":
+            self._html(200, render_newsletter())
+        elif path == "/newsletter/confirm":
+            # 確認リンクの着地はボタンだけ（自動プレビューで購読が確定しないように）
+            q = parse_qs(urlparse(self.path).query)
+            e = accounts.normalize_email(q.get("email", [""])[0]) or ""
+            t = q.get("t", [""])[0]
+            self._html(200, render_newsletter_confirm(e, t, bool(e) and hmac_eq(t, STORE.nl_token("confirm", e))))
+        elif path == "/newsletter/unsub":
+            return _newsletter_unsub_get(self)
         elif path == "/post":
             self._send(200, render_post(None, ""), "text/html; charset=utf-8")
         elif path == "/api":
@@ -1179,6 +1377,14 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
+        if path.startswith("/newsletter/"):
+            if not _rate_ok(f"nl:{self.client_address[0]}", 60):
+                return self._json(429, {"error": "rate limit exceeded"})
+            if path == "/newsletter/subscribe":
+                return _newsletter_subscribe_post(self)
+            if path == "/newsletter/confirm":
+                return _newsletter_confirm_post(self)
+            return self._json(404, {"error": "not found"})
         if path.startswith("/account/"):
             if not _rate_ok(f"acct:{self.client_address[0]}", 60):
                 return self._json(429, {"error": "rate limit exceeded"})
