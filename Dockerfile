@@ -3,7 +3,6 @@ WORKDIR /app
 COPY hub/server.py /app/server.py
 COPY hub/accounts.py /app/accounts.py
 COPY hub/pages /app/pages
-COPY hub/blog /app/blog
 COPY agent /app/agent
 COPY tools /app/tools
 COPY examples /app/examples
