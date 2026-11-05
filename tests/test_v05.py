@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -215,6 +216,14 @@ def test_hub() -> None:
         st, _, body = req(base + "/intel?lang=en")
         check("intel: duplicate product name in title is normalized",
               "WordPress WordPress Core" not in body.decode(), body.decode()[:200])
+        st, _, body = req(base + "/intel?lang=en")
+        t_en = body.decode()
+        legend = t_en[t_en.find('class="legend"'):t_en.find('</div>', t_en.find('class="legend"'))]
+        body_tags = set(re.findall(r'<span class="tag (?:red|amber|gray)"><span class="ja">([^<]+)</span>', t_en))
+        legend_tags = set(re.findall(r'<span class="tag (?:red|amber|gray)"><span class="ja">([^<]+)</span>', legend))
+        check("intel: legend covers every tag used in the list", body_tags <= legend_tags,
+              f"missing={body_tags - legend_tags}")
+        check("intel: en titles drop trailing 号", "号<" not in t_en and "号</a>" not in t_en)
         st, _, body = req(base + "/")
         check("landing: no github link", b"github.com" not in body)
     finally:

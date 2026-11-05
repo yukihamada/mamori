@@ -390,6 +390,8 @@ def render_intel(products: list[str] | None = None, lang: str = "ja") -> bytes:
         if i in matched_set:
             cls = ' class="match"'
         title = _clean_title(o.get("title"))
+        if lang == "en":
+            title = re.sub(r"号\s*$", "", title).strip()
         orig = ""
         if lang == "en" and re.search(r"[\u3040-\u30ff\u4e00-\u9fff]", title):
             orig = '<span class="orig" title="Original title is in Japanese">JA original</span> '
