@@ -2,6 +2,11 @@ name: deploy
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "LICENSE"
+      - "LICENSE.*"
+      - ".gitignore"
+      - ".claude/**"
   workflow_dispatch:
 
 concurrency:
@@ -19,6 +24,7 @@ jobs:
       - run: python3 tests/test_v05.py
       - run: python3 tests/test_mamori.py
       - run: python3 tests/test_guard.py
+      - run: python3 tests/test_attacks.py
       - run: python3 tests/test_install.py
 
   test-windows:

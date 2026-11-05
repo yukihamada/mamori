@@ -227,16 +227,6 @@ def test_auto_never_touches_confirm():
     assert "linux.firewall" not in [r["id"] for r in res]
 
 
-if __name__ == "__main__":
-    n = 0
-    for name, fn in list(globals().items()):
-        if name.startswith("test_") and callable(fn):
-            fn()
-            n += 1
-            print("ok", name)
-    print(f"{n} passed")
-
-
 def test_ai_plaintext_keys_found_without_leaking_values():
     s = Fake("darwin", MAC_WEAK, admin=False)
     s.env["HOME"] = "/Users/u"
@@ -258,3 +248,72 @@ def test_ai_plaintext_keys_ok_when_absent():
     s.files["/home/u/.bashrc"] = "export ANTHROPIC_API_KEY=$(security find-generic-password -w)\n"
     f = by_id(g.scan(s, "server", "standard", Path(tempfile.mkdtemp()), with_intel=False))
     assert f["ai.plaintext_keys"]["status"] == "ok"
+
+
+ATTACKS = {
+    "total_observations": 3, "total_attempts": 7,
+    "by_type": {"http_probe": 2, "payload": 1},
+    "items": [
+        {"type": "http_probe", "type_ja": "探索（設定・秘密ファイルを探す）",
+         "pattern": "設定・秘密ファイル探索: /.env, /.git",
+         "count": 5, "defenses": [{"finding": "ai.plaintext_keys",
+                                   "label": "秘密情報を公開ディレクトリに置かない"}]},
+        {"type": "payload", "type_ja": "攻撃の試行（脆弱性を突く）",
+         "pattern": "React Server Components脆弱性の悪用試行",
+         "count": 2, "defenses": [{"finding": "mac.os_updates", "label": "ソフトを最新に"}]},
+    ],
+}
+
+
+def test_observed_attacks_raise_priority_without_double_counting():
+    sd = Path(tempfile.mkdtemp())
+    (sd / "attacks.json").write_text(json.dumps(ATTACKS), encoding="utf-8")
+    s = Fake("darwin", MAC_WEAK)
+    rep = g.scan(s, "client", "standard", sd, with_intel=False)
+    f = by_id(rep)
+    # 観測された攻撃に効く守りは優先度が上がる（重み +2）
+    assert f["mac.os_updates"].get("observed_attack") is True
+    # 観測情報そのものは info で、点数には数えない
+    assert f["attack.observed"]["status"] == "info" and f["attack.observed"]["weight"] == 0
+    # 二重計上しない: info を除いた合計で採点される
+    counted = [x for x in rep["findings"] if x["status"] in ("ok", "weak")]
+    assert all(x["id"] != "attack.observed" for x in counted)
+
+
+def test_observed_attacks_ok_when_defenses_applied():
+    sd = Path(tempfile.mkdtemp())
+    (sd / "attacks.json").write_text(json.dumps(ATTACKS), encoding="utf-8")
+    # 効く守りがすべて ok のシステム（鍵の平文なし・OS更新なし）
+    good = [("--getglobalstate", 0, "Firewall is enabled. (State = 1)"),
+            ("fdesetup status", 0, "FileVault is On."),
+            ("AutomaticDownload", 0, "1"),
+            ("SoftwareUpdate", 0, "1"),
+            ("spctl --status", 0, "assessments enabled"),
+            ("csrutil status", 0, "System Integrity Protection status: enabled."),
+            ("softwareupdate -l", 0, "No new software available."),
+            ("launchctl print", 113, ""),
+            ("netstat", 0, "")]
+    s = Fake("darwin", good, admin=False)
+    s.env["HOME"] = "/Users/u"
+    s.files["/Users/u/.zshrc"] = "export ANTHROPIC_API_KEY=$(security find-generic-password -w)\n"
+    rep = g.scan(s, "client", "standard", sd, with_intel=False)
+    f = by_id(rep)
+    assert f["attack.covered"]["status"] == "ok"
+    assert "attack.observed" not in f
+
+
+def test_observed_attacks_missing_file_is_safe():
+    s = Fake("darwin", MAC_WEAK)
+    rep = g.scan(s, "client", "standard", Path(tempfile.mkdtemp()), with_intel=False)
+    assert "attack.observed" not in by_id(rep) and "attack.covered" not in by_id(rep)
+
+
+
+if __name__ == "__main__":
+    n = 0
+    for name, fn in list(globals().items()):
+        if name.startswith("test_") and callable(fn):
+            fn()
+            n += 1
+            print("ok", name)
+    print(f"{n} passed")
