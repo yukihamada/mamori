@@ -135,10 +135,75 @@ enum Store {
         return candidates.first { FileManager.default.fileExists(atPath: $0.path) }
     }
 
-    /// python3 を探す（/usr/bin, /opt/homebrew, /usr/local）。
-    static var pythonPath: String? {
-        let candidates = ["/usr/bin/python3", "/opt/homebrew/bin/python3", "/usr/local/bin/python3"]
-        return candidates.first { FileManager.default.isExecutableFile(atPath: $0) }
+    /// python3 を探す。存在するだけでなく「実際に起動できて 3.9 以上」を確認する。
+    /// Command Line Tools 未導入の /usr/bin/python3 は Apple のインストーラを出す
+    /// だけのシミなので、存在チェックでは掴めない。ここで起動検証して弾く。
+    /// ただし検出のためだけにシミを起動するとインストーラのダイアログが勝手に出るので、
+    /// /usr/bin/python3 は CLT 導入済みのときだけ試す。
+    static func pythonPath() -> String? {
+        // まず Homebrew / /usr/local の本物の python3（ダイアログを出さない）
+        for path in ["/opt/homebrew/bin/python3", "/usr/local/bin/python3"]
+        where FileManager.default.isExecutableFile(atPath: path) {
+            if pythonWorks(path) { return path }
+        }
+        // /usr/bin/python3 は CLT があるときだけ（無いとシミがダイアログを出す）
+        if hasCommandLineTools,
+           FileManager.default.isExecutableFile(atPath: "/usr/bin/python3"),
+           pythonWorks("/usr/bin/python3") {
+            return "/usr/bin/python3"
+        }
+        return nil
+    }
+
+    /// その python3 が実際に 3.9 以上で動くか（タイムアウト付き）。
+    static func pythonWorks(_ path: String) -> Bool {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: path)
+        p.arguments = ["-c", "import sys; sys.exit(0 if sys.version_info >= (3,9) else 1)"]
+        p.standardOutput = Pipe()
+        p.standardError = Pipe()
+        // シミがインストーラを出すケースで固まらないよう環境を素に保つ
+        var env = ProcessInfo.processInfo.environment
+        env.removeValue(forKey: "PYTHONHOME")
+        env.removeValue(forKey: "PYTHONPATH")
+        p.environment = env
+        do {
+            try p.run()
+        } catch {
+            return false
+        }
+        // 最大5秒待つ。応答しなければ（＝シミ）ダメとみなす。
+        let deadline = Date().addingTimeInterval(5)
+        while p.isRunning && Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+        if p.isRunning {
+            p.terminate()
+            return false
+        }
+        return p.terminationStatus == 0
+    }
+
+    /// Command Line Tools が入っているか（python3 が無いときの案内分岐に使う）。
+    static var hasCommandLineTools: Bool {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/xcode-select")
+        p.arguments = ["-p"]
+        p.standardOutput = Pipe()
+        p.standardError = Pipe()
+        do { try p.run() } catch { return false }
+        p.waitUntilExit()
+        return p.terminationStatus == 0
+    }
+
+    /// Apple の Command Line Tools インストーラを起動する（GUI ダイアログが出る）。
+    static func installCommandLineTools() {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/xcode-select")
+        p.arguments = ["--install"]
+        p.standardOutput = Pipe()
+        p.standardError = Pipe()
+        try? p.run()
     }
 
     static func load() -> Status? {
@@ -151,9 +216,34 @@ enum Store {
     }
 
     /// 点検を今すぐ実行する（daily.py --fix）。重いのでバックグラウンドで。
+    /// 同時に2つ走ると state ファイルが壊れるので、実行中は新規起動せず、
+    /// 進行中の結果を待っている呼び出し元へ配る。
+    private static let running = NSLock()
+    private static var isRunning = false
+    private static var waiters: [(Bool) -> Void] = []
     static func refresh(completion: @escaping (Bool) -> Void) {
-        guard let daily = dailyPath, let py = pythonPath else {
-            completion(false); return
+        running.lock()
+        if isRunning {
+            waiters.append(completion)
+            running.unlock()
+            return
+        }
+        isRunning = true
+        running.unlock()
+
+        func finish(_ ok: Bool) {
+            running.lock()
+            isRunning = false
+            let ws = waiters
+            waiters.removeAll()
+            running.unlock()
+            DispatchQueue.main.async {
+                completion(ok)
+                ws.forEach { $0(ok) }
+            }
+        }
+        guard let daily = dailyPath, let py = pythonPath() else {
+            finish(false); return
         }
         let p = Process()
         p.executableURL = URL(fileURLWithPath: py)
@@ -161,9 +251,9 @@ enum Store {
         p.standardOutput = Pipe()
         p.standardError = Pipe()
         p.terminationHandler = { proc in
-            DispatchQueue.main.async { completion(proc.terminationStatus == 0) }
+            finish(proc.terminationStatus == 0)
         }
-        do { try p.run() } catch { completion(false) }
+        do { try p.run() } catch { finish(false) }
     }
 }
 
@@ -213,6 +303,10 @@ struct Panel: View {
     @State private var status: Status?
     @State private var busy = false
     @State private var lastError: String?
+    // nil=確認中, true=点検できる, false=Python が無い等で準備が必要
+    @State private var engineReady: Bool?
+    @State private var needsCommandLineTools = false
+    @State private var installing = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -236,13 +330,52 @@ struct Panel: View {
                         ProgressView()
                         Text("この Mac の守りを点検しています…").font(.callout).foregroundStyle(.secondary)
                         Text("初回は1〜2分かかることがあります。").font(.caption).foregroundStyle(.tertiary)
-                    } else if Store.dailyPath == nil || Store.pythonPath == nil {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.largeTitle).foregroundStyle(.orange)
-                        Text("点検エンジンが見つかりません").font(.callout).foregroundStyle(.secondary)
-                        Text("アプリを Applications フォルダに置いた状態で開き直してください。")
-                            .font(.caption).foregroundStyle(.tertiary)
-                            .multilineTextAlignment(.center)
+                    } else if engineReady == nil {
+                        ProgressView()
+                        Text("準備を確認しています…").font(.caption).foregroundStyle(.secondary)
+                    } else if engineReady == false {
+                        if Store.dailyPath == nil {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.largeTitle).foregroundStyle(.orange)
+                            Text("点検エンジンが見つかりません").font(.callout).foregroundStyle(.secondary)
+                            Text("アプリを Applications フォルダに置いた状態で開き直してください。")
+                                .font(.caption).foregroundStyle(.tertiary)
+                                .multilineTextAlignment(.center)
+                        } else if needsCommandLineTools {
+                            Image(systemName: "wrench.and.screwdriver.fill")
+                                .font(.largeTitle).foregroundStyle(.orange)
+                            Text("あと1ステップで使えます").font(.callout).foregroundStyle(.secondary)
+                            Text("点検には Apple の「コマンドラインデベロッパツール」が必要です。下のボタンでインストールできます（無料・数分）。")
+                                .font(.caption).foregroundStyle(.tertiary)
+                                .multilineTextAlignment(.center)
+                            Button {
+                                installTools()
+                            } label: {
+                                Label(installing ? "インストール中…" : "開発者ツールを入れる", systemImage: "arrow.down.circle")
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(installing)
+                            Text("インストール後、この画面の「再確認」を押してください。")
+                                .font(.caption2).foregroundStyle(.tertiary)
+                            Button("再確認") { checkEngine() }
+                                .buttonStyle(.borderless)
+                        } else {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.largeTitle).foregroundStyle(.orange)
+                            Text("点検エンジンを起動できません").font(.callout).foregroundStyle(.secondary)
+                            Text("Python 3.9 以上が見つかりませんでした。ターミナルで `xcode-select --install` を実行するか、下のボタンをお試しください。")
+                                .font(.caption).foregroundStyle(.tertiary)
+                                .multilineTextAlignment(.center)
+                            Button {
+                                installTools()
+                            } label: {
+                                Label("開発者ツールを入れる", systemImage: "arrow.down.circle")
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(installing)
+                            Button("再確認") { checkEngine() }
+                                .buttonStyle(.borderless)
+                        }
                     } else {
                         Image(systemName: "shield.lefthalf.filled")
                             .font(.system(size: 40)).foregroundStyle(Color.forScore(60))
@@ -268,10 +401,35 @@ struct Panel: View {
         .frame(width: 380)
         .onAppear {
             reload()
-            // 初回（記録なし）は自動で点検を始める。エンジンが無ければ何もしない。
-            if status == nil, !busy, Store.dailyPath != nil, Store.pythonPath != nil {
-                runNow()
+            checkEngine()
+        }
+    }
+
+    /// エンジン（daily.py + 動く python3）が揃っているか確認し、揃っていれば初回点検を開始。
+    private func checkEngine() {
+        engineReady = nil
+        DispatchQueue.global(qos: .userInitiated).async {
+            let hasDaily = Store.dailyPath != nil
+            let py = Store.pythonPath()
+            let clt = Store.hasCommandLineTools
+            DispatchQueue.main.async {
+                engineReady = hasDaily && (py != nil)
+                needsCommandLineTools = (py == nil) && !clt
+                if engineReady == true, status == nil, !busy {
+                    runNow()
+                }
             }
+        }
+    }
+
+    private func installTools() {
+        installing = true
+        Store.installCommandLineTools()
+        // Apple のインストーラは GUI で進む。数秒後に自動で再確認し、以後も
+        // ユーザーが「再確認」を押せるようにしておく。
+        DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+            installing = false
+            checkEngine()
         }
     }
 
@@ -476,8 +634,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // 初回（記録なし）は起動直後に自動で点検を始める。ポップオーバーを開かなくても走る。
-        if !Store.hasStatus(), Store.dailyPath != nil, Store.pythonPath != nil {
-            Store.refresh { [weak self] _ in self?.updateTitle() }
+        if !Store.hasStatus() {
+            DispatchQueue.global(qos: .utility).async {
+                if Store.dailyPath != nil, Store.pythonPath() != nil {
+                    DispatchQueue.main.async {
+                        Store.refresh { [weak self] _ in self?.updateTitle() }
+                    }
+                }
+            }
         }
     }
 
