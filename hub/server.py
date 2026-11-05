@@ -443,6 +443,13 @@ footer a{margin:0 .5rem}
 .check-grid input{accent-color:var(--accent);width:1rem;height:1rem}
 .check-actions{display:flex;gap:.7rem;flex-wrap:wrap;align-items:center;margin:0}
 .check-note{margin:.7rem 0 0;font-size:.8rem;color:var(--muted)}
+.mac-card{max-width:760px;margin:1.6rem auto 0;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem 1.2rem}
+.mac-card-body{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.mac-card-icon{font-size:1.8rem;line-height:1}
+.mac-card-text{flex:1;min-width:200px}
+.mac-card-title{margin:0;font-weight:700;font-size:1rem}
+.mac-card-sub{margin:.2rem 0 0;color:var(--muted);font-size:.85rem}
+.mac-card-note{margin:.7rem 0 0;font-size:.78rem;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media(max-width:600px){.hero h1{font-size:1.8rem}.stat b{font-size:1.4rem}}
 </style></head><body>
@@ -485,6 +492,17 @@ footer a{margin:0 .5rem}
 <a class="btn ghost" href="/about">仕組みと他との違い</a>
 </div>
 <p style="margin-top:1rem;font-size:.85rem;color:var(--muted)"><a href="/kit.tar.gz">照合キット</a> = 自社スタックと脆弱性情報を突き合わせるローカル実行スクリプト一式（tar.gz・認証不要）</p>
+<div class="mac-card">
+<div class="mac-card-body">
+<div class="mac-card-icon">🖥️</div>
+<div class="mac-card-text">
+<p class="mac-card-title">Mac アプリ「守」— この Mac の守りを毎日採点</p>
+<p class="mac-card-sub">メニューバーに常駐し、設定の穴を点検・安全な項目は自動で修正。ダウンロードして開くだけ（登録不要）。</p>
+</div>
+<a class="btn primary" href="/MamoriBar.zip" download>⬇ Mac アプリをダウンロード</a>
+</div>
+<p class="mac-card-note">初回だけ「システム設定 → プライバシーとセキュリティ → このまま開く」が必要です（公証なしのため）。<a href="/start#mac">手順を見る</a></p>
+</div>
 <div class="stats" id="stats">__STATS_HTML__</div>
 </section>
 
@@ -1166,14 +1184,14 @@ class Handler(BaseHTTPRequestHandler):
             return self._media(path[len("/media/"):])
         if path == "/kit.tar.gz":
             return self._kit_head()
-        if path == "/MamoriCheck.zip":
-            f = APP_DIR / "MamoriCheck.zip"
+        if path in ("/MamoriCheck.zip", "/MamoriBar.zip"):
+            f = APP_DIR / ("MamoriCheck.zip" if path == "/MamoriCheck.zip" else "dist/MamoriBar.zip")
             if not f.exists():
                 self.send_response(404)
             else:
                 self.send_response(200)
                 self.send_header("Content-Type", "application/zip")
-                self.send_header("Content-Disposition", 'attachment; filename="MamoriCheck.zip"')
+                self.send_header("Content-Disposition", f'attachment; filename="{f.name}"')
                 self.send_header("Content-Length", str(f.stat().st_size))
             self.end_headers()
             return
@@ -1250,14 +1268,14 @@ class Handler(BaseHTTPRequestHandler):
                 _kit_cache["kit"] = build_kit()
             self._kit_head()  # ヘッダーはHEADと共通
             self.wfile.write(_kit_cache["kit"])
-        elif path == "/MamoriCheck.zip":
-            f = APP_DIR / "MamoriCheck.zip"
+        elif path in ("/MamoriCheck.zip", "/MamoriBar.zip"):
+            f = APP_DIR / ("MamoriCheck.zip" if path == "/MamoriCheck.zip" else "dist/MamoriBar.zip")
             if not f.exists():
                 return self._json(404, {"error": "not found"})
             data = f.read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", "application/zip")
-            self.send_header("Content-Disposition", 'attachment; filename="MamoriCheck.zip"')
+            self.send_header("Content-Disposition", f'attachment; filename="{f.name}"')
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             self.wfile.write(data)

@@ -115,9 +115,30 @@ enum Store {
         FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".mamori/status.json")
     }
-    static var dailyPath: URL {
-        FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("workspace/mamori/agent/daily.py")
+
+    /// daily.py を探す。ダウンロードした .app でも動くよう、同梱 Resources を最優先。
+    /// 1. 環境変数 MAMORI_DAILY
+    /// 2. .app の Resources/agent/daily.py（同梱）
+    /// 3. ~/.mamori/kit/mamori/agent/daily.py（install.sh が入れたキット）
+    /// 4. ~/workspace/mamori/agent/daily.py（開発時）
+    static var dailyPath: URL? {
+        var candidates: [URL] = []
+        if let env = ProcessInfo.processInfo.environment["MAMORI_DAILY"], !env.isEmpty {
+            candidates.append(URL(fileURLWithPath: env))
+        }
+        if let res = Bundle.main.resourceURL {
+            candidates.append(res.appendingPathComponent("agent/daily.py"))
+        }
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        candidates.append(home.appendingPathComponent(".mamori/kit/mamori/agent/daily.py"))
+        candidates.append(home.appendingPathComponent("workspace/mamori/agent/daily.py"))
+        return candidates.first { FileManager.default.fileExists(atPath: $0.path) }
+    }
+
+    /// python3 を探す（/usr/bin, /opt/homebrew, /usr/local）。
+    static var pythonPath: String? {
+        let candidates = ["/usr/bin/python3", "/opt/homebrew/bin/python3", "/usr/local/bin/python3"]
+        return candidates.first { FileManager.default.isExecutableFile(atPath: $0) }
     }
 
     static func load() -> Status? {
@@ -125,14 +146,18 @@ enum Store {
         return try? JSONDecoder().decode(Status.self, from: data)
     }
 
+    static func hasStatus() -> Bool {
+        FileManager.default.fileExists(atPath: statusPath.path)
+    }
+
     /// 点検を今すぐ実行する（daily.py --fix）。重いのでバックグラウンドで。
     static func refresh(completion: @escaping (Bool) -> Void) {
-        guard FileManager.default.fileExists(atPath: dailyPath.path) else {
+        guard let daily = dailyPath, let py = pythonPath else {
             completion(false); return
         }
         let p = Process()
-        p.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
-        p.arguments = [dailyPath.path, "--fix", "--quiet"]
+        p.executableURL = URL(fileURLWithPath: py)
+        p.arguments = [daily.path, "--fix", "--quiet"]
         p.standardOutput = Pipe()
         p.standardError = Pipe()
         p.terminationHandler = { proc in
@@ -206,17 +231,48 @@ struct Panel: View {
                 }
                 .frame(maxHeight: 460)
             } else {
-                VStack(spacing: 10) {
-                    ProgressView()
-                    Text("守りの点数を読み込んでいます…").font(.callout).foregroundStyle(.secondary)
-                    Text("まだ記録がなければ「今すぐ点検」を押してください。")
-                        .font(.caption).foregroundStyle(.tertiary)
+                VStack(spacing: 12) {
+                    if busy {
+                        ProgressView()
+                        Text("この Mac の守りを点検しています…").font(.callout).foregroundStyle(.secondary)
+                        Text("初回は1〜2分かかることがあります。").font(.caption).foregroundStyle(.tertiary)
+                    } else if Store.dailyPath == nil || Store.pythonPath == nil {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.largeTitle).foregroundStyle(.orange)
+                        Text("点検エンジンが見つかりません").font(.callout).foregroundStyle(.secondary)
+                        Text("アプリを Applications フォルダに置いた状態で開き直してください。")
+                            .font(.caption).foregroundStyle(.tertiary)
+                            .multilineTextAlignment(.center)
+                    } else {
+                        Image(systemName: "shield.lefthalf.filled")
+                            .font(.system(size: 40)).foregroundStyle(Color.forScore(60))
+                        Text("まだ点検していません").font(.callout).foregroundStyle(.secondary)
+                        Button {
+                            runNow()
+                        } label: {
+                            Label("今すぐ点検する", systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        Text("この Mac の設定を読み取り、安全に直せるものは自動で直します。")
+                            .font(.caption).foregroundStyle(.tertiary)
+                            .multilineTextAlignment(.center)
+                    }
+                    if let e = lastError {
+                        Text(e).font(.caption).foregroundStyle(.red).multilineTextAlignment(.center)
+                    }
                 }
-                .frame(maxWidth: .infinity, minHeight: 140)
+                .padding(20)
+                .frame(maxWidth: .infinity, minHeight: 160)
             }
         }
         .frame(width: 380)
-        .onAppear { reload() }
+        .onAppear {
+            reload()
+            // 初回（記録なし）は自動で点検を始める。エンジンが無ければ何もしない。
+            if status == nil, !busy, Store.dailyPath != nil, Store.pythonPath != nil {
+                runNow()
+            }
+        }
     }
 
     private var header: some View {

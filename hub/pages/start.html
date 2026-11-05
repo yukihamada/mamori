@@ -31,6 +31,16 @@ table{width:100%;border-collapse:collapse;font-size:14px;margin:8px 0}td,th{bord
 </video>
 <p class="cap">参加ガイド動画（約2分15秒）。製品の紹介は<a href="#intro">下の紹介動画</a>へ。</p>
 
+<h2 id="mac">Mac アプリ「守」— ターミナルなしで使う</h2>
+<p>コマンドを打たずに、この Mac の守りを毎日採点したい人向けです。メニューバーに常駐し、設定の穴を点検、安全で元に戻せる項目は自動で直します。点検エンジンはアプリに同梱済みで、<b>ダウンロードして開くだけで動きます</b>（Python 3.9以上が必要）。</p>
+<div class="step"><div class="n">1</div><div><h3>ダウンロードする</h3>
+<p><a href="/MamoriBar.zip" download><b>⬇ 守 Mamori（Mac アプリ）をダウンロード</b></a> → ダウンロードした <code>MamoriBar.zip</code> をダブルクリックで展開し、<code>MamoriBar.app</code> を「アプリケーション」フォルダに移します。</p></div></div>
+<div class="step"><div class="n">2</div><div><h3>初回だけ「このまま開く」</h3>
+<p>公証（Apple の審査）を受けていないため、初回は「開発元を確認できません」と出ます。<b>アプリを右クリック →「開く」→「開く」</b>で起動できます。うまくいかないときは<b>システム設定 → プライバシーとセキュリティ → 画面下の「このまま開く」</b>を押してください。</p></div></div>
+<div class="step"><div class="n">3</div><div><h3>メニューバーの盾をクリック →「今すぐ点検する」</h3>
+<p>初回は1〜2分かかります。点数の意味：<b>90以上=とても良い／75以上=良い／60以上=ふつう／40以上=注意／40未満=要対応</b>。締め出しや再起動のおそれがある項目は勝手に直さず、「承認すれば直せる」として表示します。</p>
+<p>記録は <code>~/.mamori/</code> に保存され、外部には送信されません。アプリを消すときは「アプリケーション」から <code>MamoriBar.app</code> をゴミ箱へ。</p></div></div>
+
 <h2>必要なもの</h2>
 <p>Mac・Linux・Windows のパソコンと「ターミナル」（文字で命令を打つアプリ。Windows は PowerShell）／Python 3.9以上／curl。追加のソフトは要りません。Macで初めて python3 を使うときは「コマンドライン・デベロッパ・ツール」を入れる案内が出るので、そのまま入れてください。</p>
 
