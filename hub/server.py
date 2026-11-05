@@ -355,12 +355,21 @@ def render_intel(products: list[str] | None = None, lang: str = "ja") -> bytes:
             t = (o.get("title") or "").lower()
             if any(k in t for k in kws):
                 matched_set.add(i)
+    if matched_set:
+        order = sorted(range(len(objs)), key=lambda i: (0 if i in matched_set else 1, i))
+        objs = [objs[i] for i in order]
+        matched_set = set(range(len(matched_set)))
     newest = max((o.get("published") or "" for o in objs), default="")
     import datetime as _dt
     try:
         cut = (_dt.date.fromisoformat(newest) - _dt.timedelta(days=7)).isoformat() if newest else ""
     except ValueError:
         cut = ""
+
+    def _clean_title(title: str) -> str:
+        t = (title or "").strip()
+        m = re.match(r"^(.+?):\s+\1\b", t)
+        return t[m.end(1) + 2:] if m else t
     rows = []
     for i, o in enumerate(objs):
         kind_ja, kind_en, src, color = SRC_LABEL.get(
@@ -374,7 +383,7 @@ def render_intel(products: list[str] | None = None, lang: str = "ja") -> bytes:
         rows.append(f'<li{cls}><span class="d">{_esc(o.get("published") or "—")}</span>'
                     f'<span class="tag {color}"><span class="ja">{kind_ja}</span><span class="en">{kind_en}</span></span>'
                     f'<span class="src">{_esc(src)}</span>'
-                    f'<a href="{_esc(o.get("url"))}" rel="noopener" target="_blank">{_esc(o.get("title"))}</a>{due}</li>')
+                    f'<a href="{_esc(o.get("url"))}" rel="noopener" target="_blank">{_esc(_clean_title(o.get("title")))}</a>{due}</li>')
     created = (b.get("created") or "")[:16].replace("T", " ")
     html = _page("intel.html").decode()
     html = html.replace("__LANG__", lang)
@@ -393,10 +402,16 @@ def render_intel(products: list[str] | None = None, lang: str = "ja") -> bytes:
     else:
         html = html.replace("__EMPTY__", "")
     if products:
+        if matched_set:
+            ja_msg = (f'該当する {len(matched_set)} 件を先頭に並べ、緑の枠で示しています。')
+            en_msg = (f'{len(matched_set)} matching item(s) are shown first, highlighted in green.')
+        else:
+            ja_msg = '一致する項目は見つかりませんでした。製品名の表記を変えて試してください。'
+            en_msg = 'No matching items were found. Try a different product spelling.'
         note = (f'<p class="filter-note" role="status"><span class="ja">🔍 選択中の製品: <b>{_esc(", ".join(products))}</b> — '
-                f'該当する項目を緑の枠で強調しています（{len(matched_set)}件）。</span>'
+                f'{ja_msg}</span>'
                 f'<span class="en">🔍 Selected products: <b>{_esc(", ".join(products))}</b> — '
-                f'matching items are highlighted in green ({len(matched_set)}).</span> '
+                f'{en_msg}</span> '
                 f'<a href="/intel?lang={lang}"><span class="ja">すべて表示に戻す</span><span class="en">Show all</span></a></p>')
         html = html.replace("__FILTER_NOTE__", note)
     else:
@@ -1273,7 +1288,11 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/intel":
             qs = parse_qs(urlparse(self.path).query)
             products = [p.strip() for p in (qs.get("products", [""])[0].split(",")) if p.strip()]
-            lang = (qs.get("lang", ["ja"])[0] or "ja").lower()
+            lang = (qs.get("lang", [""])[0] or "").lower()
+            if lang not in ("ja", "en"):
+                accept = (self.headers.get("Accept-Language") or "").strip().lower()
+                first = accept.split(",")[0].split(";")[0].strip() if accept else ""
+                lang = "ja" if first.startswith("ja") else ("en" if first else "ja")
             self._send(200, render_intel(products or None, lang), "text/html; charset=utf-8")
         elif path == "/install.ps1":
             f = APP_DIR / "tools" / "install.ps1"

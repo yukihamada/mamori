@@ -107,7 +107,11 @@ def test_hub() -> None:
     media.mkdir(exist_ok=True)
     probe = media / "zz-test.mp4"
     probe.write_bytes(bytes(range(256)) * 40)
-    (tmp / "latest_bundle.json").write_text(json.dumps({"created": "2026-10-23T00:00:00+00:00", "objects": [{"id": "x"}]}))
+    (tmp / "latest_bundle.json").write_text(json.dumps({"created": "2026-10-23T00:00:00+00:00", "objects": [
+        {"id": "x", "title": "Unrelated router flaw", "published": "2026-10-22", "url": "https://example.com/a"},
+        {"id": "y", "title": "PHP remote code execution", "published": "2026-10-21", "url": "https://example.com/b"},
+        {"id": "z", "title": "WordPress plugin flaw", "published": "2026-10-20", "url": "https://example.com/c"},
+    ]}))
     now = time.time()
     (tmp / "observations.jsonl").write_text("".join(json.dumps(o) + "\n" for o in [
         {"type": "attack-observation", "pattern": "public-clear-obs", "tlp": "CLEAR", "received_at": now},
@@ -198,6 +202,15 @@ def test_hub() -> None:
               and "__TITLE__" not in txt_en and "__DESC__" not in txt_en)
         st, _, body = req(base + "/intel?products=php")
         check("intel: filter note bilingual", "選択中の製品" in body.decode() and "Selected products" in body.decode())
+        st, _, body = req(base + "/intel", headers={"Accept-Language": "en-US,en;q=0.9"})
+        check("intel: Accept-Language en picks en server-side", '<html lang="en"' in body.decode(), body.decode()[:200])
+        st, _, body = req(base + "/intel", headers={"Accept-Language": "ja-JP,ja;q=0.9"})
+        check("intel: Accept-Language ja keeps ja", '<html lang="ja"' in body.decode())
+        st, _, body = req(base + "/intel?products=php")
+        t = body.decode()
+        first_li = t.find("<li class=") if "<li class=" in t else t.find("<li>")
+        check("intel: matched item sorted first",
+              first_li != -1 and 'class="match"' in t[first_li:first_li + 60], t[first_li:first_li + 80])
         st, _, body = req(base + "/")
         check("landing: no github link", b"github.com" not in body)
     finally:
