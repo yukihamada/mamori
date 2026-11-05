@@ -779,6 +779,43 @@ def detect_profile(s: System) -> str:
     return "client" if (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")) else "server"
 
 
+def check_observed_attacks(s: System, sd: Path, findings: list[dict]) -> tuple[list[dict], set[str]]:
+    """実際に観測された攻撃（attacks.py が集めた attacks.json）と、いまの守りを突き合わせる。
+
+    返り値: (表示用の finding 群, 重みを上げる守り項目の id 集合)。
+    観測された手口に効く守りが未了なら、その守り項目の重みを上げて優先度を引き上げる
+    （点数を二重計上しない）。すべて備えていれば ok の情報として残す。読むだけ・捏造しない。
+    """
+    p = sd / "attacks.json"
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return [], set()
+    items = data.get("items", [])
+    if not items:
+        return [], set()
+    weak_ids = {x["id"] for x in findings if x.get("status") == "weak"}
+    gaps: dict[str, dict] = {}
+    for it in items:
+        for d in it.get("defenses", []):
+            fid = d.get("finding")
+            if not fid:
+                continue
+            g = gaps.setdefault(fid, {"label": d.get("label", ""), "attacks": []})
+            g["attacks"].append(it.get("type_ja", ""))
+    boost = {fid for fid in gaps if fid in weak_ids}
+    kinds = "・".join(sorted({it.get("type_ja", "") for it in items if it.get("defenses")}))
+    if boost:
+        detail = "、".join(f"{gaps[fid]['label']}" for fid in sorted(boost))
+        f = finding("attack.observed", "観測された攻撃（実際に起きている手口）", "info",
+                    f"{len(items)}種（{kinds}）。効く守りが未了: {detail}",
+                    weight=0, how="該当する守り項目を直すと、この手口への備えが整います")
+    else:
+        f = finding("attack.covered", "観測された攻撃への備え", "ok",
+                    f"{len(items)}種の観測（{kinds}）に効く守りは適用済み", weight=1)
+    return [f], boost
+
+
 def scan(s: System, profile: str, level: str, sd: Path, with_intel: bool = True) -> dict:
     checks = {"darwin": check_macos, "linux": check_linux, "windows": check_windows}[s.os]
     f = checks(s, profile, level)
@@ -793,6 +830,12 @@ def scan(s: System, profile: str, level: str, sd: Path, with_intel: bool = True)
                     and x["status"] == "weak":
                 x["weight"] += 3
                 x["refs"] = [{"id": a["id"], "url": a.get("url", "")} for a in os_hits[:5]]
+    attack_f, boost = check_observed_attacks(s, sd, f)
+    for x in f:  # 実際に観測された攻撃に効く守りは優先度を上げる
+        if x["id"] in boost and x["status"] == "weak":
+            x["weight"] += 2
+            x["observed_attack"] = True
+    f += attack_f
     total = sum(x["weight"] for x in f if x["status"] in ("ok", "weak"))
     good = sum(x["weight"] for x in f if x["status"] == "ok")
     score = round(100 * good / total) if total else None
