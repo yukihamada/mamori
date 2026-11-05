@@ -474,6 +474,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         timer = Timer.scheduledTimer(withTimeInterval: 1800, repeats: true) { [weak self] _ in
             self?.updateTitle()
         }
+
+        // 初回（記録なし）は起動直後に自動で点検を始める。ポップオーバーを開かなくても走る。
+        if !Store.hasStatus(), Store.dailyPath != nil, Store.pythonPath != nil {
+            Store.refresh { [weak self] _ in self?.updateTitle() }
+        }
     }
 
     @objc func toggle() {
