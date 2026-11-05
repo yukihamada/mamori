@@ -111,6 +111,7 @@ def test_hub() -> None:
         {"id": "x", "title": "Unrelated router flaw", "published": "2026-10-22", "url": "https://example.com/a"},
         {"id": "y", "title": "PHP remote code execution", "published": "2026-10-21", "url": "https://example.com/b"},
         {"id": "z", "title": "WordPress plugin flaw", "published": "2026-10-20", "url": "https://example.com/c"},
+        {"id": "w", "title": "WordPress WordPress Core race condition", "published": "2026-10-19", "url": "https://example.com/d"},
     ]}))
     now = time.time()
     (tmp / "observations.jsonl").write_text("".join(json.dumps(o) + "\n" for o in [
@@ -211,6 +212,9 @@ def test_hub() -> None:
         first_li = t.find("<li class=") if "<li class=" in t else t.find("<li>")
         check("intel: matched item sorted first",
               first_li != -1 and 'class="match"' in t[first_li:first_li + 60], t[first_li:first_li + 80])
+        st, _, body = req(base + "/intel?lang=en")
+        check("intel: duplicate product name in title is normalized",
+              "WordPress WordPress Core" not in body.decode(), body.decode()[:200])
         st, _, body = req(base + "/")
         check("landing: no github link", b"github.com" not in body)
     finally:

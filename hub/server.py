@@ -369,7 +369,10 @@ def render_intel(products: list[str] | None = None, lang: str = "ja") -> bytes:
     def _clean_title(title: str) -> str:
         t = (title or "").strip()
         m = re.match(r"^(.+?):\s+\1\b", t)
-        return t[m.end(1) + 2:] if m else t
+        if m:
+            return t[m.end(1) + 2:]
+        m = re.match(r"^(\S+)\s+\1\b", t)
+        return t[m.end(1) + 1:] if m else t
     rows = []
     for i, o in enumerate(objs):
         kind_ja, kind_en, src, color = SRC_LABEL.get(
