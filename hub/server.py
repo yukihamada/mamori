@@ -329,20 +329,24 @@ def _esc(t) -> str:
             .replace('"', "&quot;"))
 
 
-SRC_LABEL = {"cisa_kev": ("悪用確認済み", "CISA KEV", "red"),
-             "jpcert_alert": ("注意喚起", "JPCERT/CC", "amber"),
-             "jpcert": ("週報", "JPCERT/CC", "gray"),
-             "jpcert_ics": ("制御システム", "JPCERT/CC", "gray")}
+SRC_LABEL = {"cisa_kev": ("悪用確認済み", "Actively exploited", "CISA KEV", "red"),
+             "jpcert_alert": ("注意喚起", "Advisory", "JPCERT/CC", "amber"),
+             "jpcert": ("週報", "Weekly report", "JPCERT/CC", "gray"),
+             "jpcert_ics": ("制御システム", "ICS/OT", "JPCERT/CC", "gray")}
 
 
-def render_intel(products: list[str] | None = None) -> bytes:
+def render_intel(products: list[str] | None = None, lang: str = "ja") -> bytes:
     """/api/latest を人が読める一覧にする（運営の照合結果は出さない）。
-    products が指定された場合、タイトルに製品名を含む項目だけを強調表示する。"""
+    products が指定された場合、タイトルに製品名を含む項目だけを強調表示する。
+    lang は "ja"/"en"。サーバー側で初期言語を確定し、JSは切替のみ担当する。"""
+    if lang not in ("ja", "en"):
+        lang = "ja"
     try:
         b = json.loads(LATEST_FILE.read_text())
     except Exception:  # noqa: BLE001
         b = {"objects": [], "created": ""}
-    objs = [o for o in b.get("objects", []) if o.get("title")]
+    raw = b.get("objects") or b.get("items") or []
+    objs = [o for o in raw if isinstance(o, dict) and o.get("title")]
     objs.sort(key=lambda o: o.get("published") or "", reverse=True)
     matched_set: set[int] = set()
     if products:
@@ -359,22 +363,41 @@ def render_intel(products: list[str] | None = None) -> bytes:
         cut = ""
     rows = []
     for i, o in enumerate(objs):
-        kind, src, color = SRC_LABEL.get(o.get("source"), ("情報", o.get("source", ""), "gray"))
-        due = f'<span class="due">米国政府の対応期限 {_esc(o.get("due_date"))}</span>' if o.get("due_date") else ""
+        kind_ja, kind_en, src, color = SRC_LABEL.get(
+            o.get("source"), ("情報", "Info", o.get("source", ""), "gray"))
+        due = (f'<span class="due"><span class="ja">米国政府の対応期限 {_esc(o.get("due_date"))}</span>'
+               f'<span class="en">US federal due date {_esc(o.get("due_date"))}</span></span>'
+               ) if o.get("due_date") else ""
         cls = ' class="fresh"' if cut and (o.get("published") or "") >= cut else ""
         if i in matched_set:
             cls = ' class="match"'
         rows.append(f'<li{cls}><span class="d">{_esc(o.get("published") or "—")}</span>'
-                    f'<span class="tag {color}">{kind}</span><span class="src">{_esc(src)}</span>'
+                    f'<span class="tag {color}"><span class="ja">{kind_ja}</span><span class="en">{kind_en}</span></span>'
+                    f'<span class="src">{_esc(src)}</span>'
                     f'<a href="{_esc(o.get("url"))}" rel="noopener" target="_blank">{_esc(o.get("title"))}</a>{due}</li>')
     created = (b.get("created") or "")[:16].replace("T", " ")
     html = _page("intel.html").decode()
+    html = html.replace("__LANG__", lang)
+    if lang == "en":
+        html = html.replace("__TITLE__", "Latest threats — Mamori")
+        html = html.replace("__DESC__", "CISA KEV (actively exploited) and JPCERT/CC advisories, refreshed every 6 hours. Free, no sign-up.")
+    else:
+        html = html.replace("__TITLE__", "最新の脅威 — 守 Mamori")
+        html = html.replace("__DESC__", "CISA KEV（悪用確認済み）とJPCERT/CC注意喚起を6時間ごとに自動取得。登録不要で読めます。")
     html = html.replace("__UPDATED__", _esc(created + " UTC" if created else "—"))
     html = html.replace("__COUNT__", str(len(objs))).replace("__ROWS__", "\n".join(rows))
+    if not objs:
+        html = html.replace("__EMPTY__",
+            '<p class="empty"><span class="ja">いま取得できた項目がありません。時間をおいて再読み込みしてください。</span>'
+            '<span class="en">No items could be fetched right now. Please reload in a little while.</span></p>')
+    else:
+        html = html.replace("__EMPTY__", "")
     if products:
-        note = (f'<p class="filter-note">🔍 選択中の製品: <b>{_esc(", ".join(products))}</b> — '
-                f'該当する項目を緑の枠で強調しています（{len(matched_set)}件）。'
-                f'<a href="/intel">すべて表示に戻す</a></p>')
+        note = (f'<p class="filter-note" role="status"><span class="ja">🔍 選択中の製品: <b>{_esc(", ".join(products))}</b> — '
+                f'該当する項目を緑の枠で強調しています（{len(matched_set)}件）。</span>'
+                f'<span class="en">🔍 Selected products: <b>{_esc(", ".join(products))}</b> — '
+                f'matching items are highlighted in green ({len(matched_set)}).</span> '
+                f'<a href="/intel?lang={lang}"><span class="ja">すべて表示に戻す</span><span class="en">Show all</span></a></p>')
         html = html.replace("__FILTER_NOTE__", note)
     else:
         html = html.replace("__FILTER_NOTE__", "")
@@ -1250,7 +1273,8 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/intel":
             qs = parse_qs(urlparse(self.path).query)
             products = [p.strip() for p in (qs.get("products", [""])[0].split(",")) if p.strip()]
-            self._send(200, render_intel(products or None), "text/html; charset=utf-8")
+            lang = (qs.get("lang", ["ja"])[0] or "ja").lower()
+            self._send(200, render_intel(products or None, lang), "text/html; charset=utf-8")
         elif path == "/install.ps1":
             f = APP_DIR / "tools" / "install.ps1"
             if f.exists():

@@ -1,10 +1,21 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<!doctype html><html lang="__LANG__" data-lang="__LANG__"><head><meta charset="utf-8">
+<script>
+(function(){
+  var l=null;
+  try{l=new URLSearchParams(location.search).get('lang');}catch(e){}
+  if(l!=='ja'&&l!=='en'){try{l=localStorage.getItem('mamori_intel_lang');}catch(e){}}
+  if(l!=='ja'&&l!=='en'){l=(navigator.language||'ja').toLowerCase().indexOf('ja')===0?'ja':'en';}
+  document.documentElement.setAttribute('data-lang',l);
+  document.documentElement.setAttribute('lang',l);
+})();
+</script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>最新の脅威 — 守 Mamori</title>
-<meta name="description" content="CISA KEV（悪用確認済み）とJPCERT/CC注意喚起を6時間ごとに自動取得。登録不要で読めます。">
+<title>__TITLE__</title>
+<meta name="description" content="__DESC__">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
 <style>
-:root{--bg:#0a0a0a;--surface:#141414;--border:#262626;--text:#ececec;--muted:#9a9a9a;--accent:#10b981;--red:#f87171;--amber:#fbbf24}
-@media (prefers-color-scheme: light){:root{--bg:#fafafa;--surface:#fff;--border:#e5e5e5;--text:#141414;--muted:#666;--accent:#047857;--red:#b91c1c;--amber:#a16207}}
+:root{--bg:#0a0a0a;--surface:#141414;--border:#262626;--text:#ececec;--muted:#a8a8a8;--accent:#10b981;--red:#f87171;--amber:#fbbf24}
+@media (prefers-color-scheme: light){:root{--bg:#fafafa;--surface:#fff;--border:#e5e5e5;--text:#141414;--muted:#5a5a5a;--accent:#047857;--red:#b91c1c;--amber:#a16207}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;line-height:1.7}
 .wrap{max-width:860px;margin:0 auto;padding:32px 16px 64px}
 a{color:var(--accent)}h1{font-size:28px;margin:.2em 0}.lead{color:var(--muted);font-size:14px}
@@ -17,17 +28,153 @@ li.match{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 .tag{font-size:12px;font-weight:700;border-radius:999px;padding:1px 10px;border:1px solid}
 .tag.red{color:var(--red);border-color:var(--red)}.tag.amber{color:var(--amber);border-color:var(--amber)}.tag.gray{color:var(--muted);border-color:var(--border)}
 .due{font-size:12px;color:var(--muted)}.new{color:var(--accent);font-weight:700}
+.empty{background:var(--surface);border:1px dashed var(--border);border-radius:10px;padding:16px;color:var(--muted);font-size:14px}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .cta{background:var(--surface);border:1px solid var(--accent);border-radius:12px;padding:16px;margin-top:24px;font-size:14px}
+.cta.inline{margin:16px 0 4px;font-size:13px}
+.filter{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin:16px 0;font-size:13px}
+.filter label{display:block;margin-bottom:8px;color:var(--text)}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap}
+.filter input[type=text]{flex:1 1 200px;min-width:0;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit}
+.filter button{background:var(--accent);color:#04160a;border:0;border-radius:8px;padding:10px 18px;min-height:44px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.chips{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-top:10px;color:var(--muted);font-size:12px}
+.chips a{background:var(--bg);border:1px solid var(--border);border-radius:999px;padding:8px 12px;min-height:36px;display:inline-flex;align-items:center;text-decoration:none}
+.chips a:hover{border-color:var(--accent)}
+
+/* language switch */
+.lang{display:flex;gap:6px;justify-content:flex-end;margin:0 0 4px}
+.lang button{background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:8px 16px;min-height:40px;font-size:13px;cursor:pointer;font-family:inherit}
+.lang button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);font-weight:700}
+html[data-lang="ja"] .en{display:none!important}
+html[data-lang="en"] .ja{display:none!important}
+
+/* explanation */
+.explain{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:18px 0}
+.explain h2{font-size:16px;margin:0 0 6px}
+.explain .sub{color:var(--muted);font-size:13px;margin:0 0 12px}
+.grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.card{border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px}
+.card b{display:block;font-size:13px;margin-bottom:4px}
+.card p{margin:0;color:var(--muted)}
+.steps{counter-reset:s;margin:0;padding:0;font-size:13px}
+.step{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-top:1px solid var(--border)}
+.step:first-child{border-top:0}
+.step::before{counter-increment:s;content:counter(s);flex:0 0 22px;height:22px;border-radius:50%;background:var(--accent);color:#04160a;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.step p{margin:0}
 </style></head><body><div class="wrap">
-<p><a href="/">← 守 Mamori ハブ</a></p>
-<h1>🛡 最新の脅威</h1>
-<p class="lead">アメリカのCISAが公表した「実際に悪用された脆弱性」と、日本のJPCERT/CCの注意喚起・週報を、ハブが6時間ごとに自動で集めています。登録不要。<br>
-最終取得: <b>__UPDATED__</b> ／ 全 __COUNT__ 件 ／ <span class="new">緑の枠</span>は直近7日の新着</p>
-<div class="legend"><span class="tag red">悪用確認済み</span>すでに攻撃に使われている　<span class="tag amber">注意喚起</span>国内で対応が急がれる　<span class="tag gray">週報</span>まとめ</div>
+<div class="lang" role="group" aria-label="Language / 言語">
+<button type="button" id="lang-ja" aria-pressed="true">日本語</button>
+<button type="button" id="lang-en" aria-pressed="false">English</button>
+<span id="lang-status" class="sr-only" aria-live="polite"></span>
+</div>
+<p><a href="/"><span class="ja">← 守 Mamori ハブ</span><span class="en">← Mamori hub</span></a></p>
+<h1><span class="ja">🛡 最新の脅威</span><span class="en">🛡 Latest threats</span></h1>
+<p class="lead">
+<span class="ja">アメリカのCISAが公表した「実際に悪用された脆弱性」と、日本のJPCERT/CCの注意喚起・週報を、ハブが6時間ごとに自動で集めています。登録不要。<br>
+最終取得: <b>__UPDATED__</b> ／ 全 __COUNT__ 件 ／ <span class="new">緑の枠</span>は直近7日の新着</span>
+<span class="en">Mamori automatically collects vulnerabilities that CISA confirms are actively exploited, plus JPCERT/CC advisories and weekly reports, every 6 hours. No sign-up required.<br>
+Last fetched: <b>__UPDATED__</b> ／ __COUNT__ items ／ <span class="new">Green border</span> = new in the last 7 days</span>
+</p>
+
+<div class="explain">
+<h2><span class="ja">このページの読み方</span><span class="en">How to read this page</span></h2>
+<p class="sub"><span class="ja">むずかしい用語は3つだけ。上から順に読めば、何をすればいいか分かります。</span><span class="en">Only three concepts to learn. Read top to bottom and you'll know what to do.</span></p>
+<div class="grid">
+<div class="card">
+<b><span class="ja">① 何の情報か</span><span class="en">① What this is</span></b>
+<p><span class="ja">「実際に攻撃に使われた」と政府機関（米CISA）が確認したソフトの弱点と、日本JPCERT/CCの注意喚起の一覧です。まだ攻撃されていない弱点は載っていません。</span><span class="en">A list of software weaknesses the US government (CISA) has confirmed are used in real attacks, plus advisories from Japan's JPCERT/CC. Weaknesses not yet exploited are not listed here.</span></p>
+</div>
+<div class="card">
+<b><span class="ja">② タグの意味</span><span class="en">② What the tags mean</span></b>
+<p><span class="ja"><span class="tag red">悪用確認済み</span> すでに攻撃に使われている（米CISA KEVの項目のみ）／<span class="tag amber">注意喚起</span> 国内向けの注意喚起。緊急度は内容により異なる（JPCERT/CC）／<span class="tag gray">週報</span> 1週間のまとめ。</span><span class="en"><span class="tag red">Actively exploited</span> already used in attacks (CISA KEV only) ／ <span class="tag amber">Advisory</span> advisory for Japan; urgency varies by item (JPCERT/CC) ／ <span class="tag gray">Weekly report</span> weekly roundup.</span></p>
+</div>
+<div class="card">
+<b><span class="ja">③ 日付の意味</span><span class="en">③ What the dates mean</span></b>
+<p><span class="ja">左の日付は公表日。「米国政府の対応期限」は米政府機関向けの期限で、日本企業には目安です。過ぎていても慌てず、まず自社で該当製品を使っているか確認を。</span><span class="en">The left date is when it was published. "US federal due date" applies to US government agencies and is only a rough guide elsewhere. If it has passed, don't panic — first check whether you use the affected product.</span></p>
+</div>
+</div>
+<div class="steps" style="margin-top:14px">
+<div class="step"><p><span class="ja"><b>自社で使っている製品か確認する。</b>タイトルに製品名（例: WordPress、PHP、Ivanti）が出ています。</span><span class="en"><b>Check if you use the product.</b> The product name (e.g. WordPress, PHP, Ivanti) appears in the title.</span></p></div>
+<div class="step"><p><span class="ja"><b>使っていたら、リンク先の一次情報で影響と修正版を確認する。</b>各項目のリンクはNVDやJPCERT/CCの原文です。</span><span class="en"><b>If you do, open the link and check the impact and fixed version.</b> Links go to the original NVD or JPCERT/CC pages.</span></p></div>
+<div class="step"><p><span class="ja"><b>更新する。間に合わない場合は、その製品をインターネットから直接触れないようにする。</b>更新できない間の一時しのぎです。</span><span class="en"><b>Update. If you can't yet, keep the product off the public internet.</b> That's a stopgap until you can patch.</span></p></div>
+</div>
+</div>
+
+<form class="filter" method="get" action="/intel">
+<label for="prod"><span class="ja"><b>使っている製品で絞り込む</b>（例: WordPress, PHP, Ivanti）</span><span class="en"><b>Filter by the products you use</b> (e.g. WordPress, PHP, Ivanti)</span></label>
+<div class="filter-row">
+<input id="prod" name="products" type="text" autocomplete="off" placeholder="WordPress, PHP">
+<input type="hidden" name="lang" id="filter-lang" value="__LANG__">
+<button type="submit"><span class="ja">絞り込む</span><span class="en">Filter</span></button>
+</div>
+<div class="chips">
+<span class="ja">よく使われる:</span><span class="en">Common:</span>
+<a href="/intel?products=WordPress&amp;lang=__LANG__">WordPress</a>
+<a href="/intel?products=PHP&amp;lang=__LANG__">PHP</a>
+<a href="/intel?products=Ivanti&amp;lang=__LANG__">Ivanti</a>
+<a href="/intel?products=Cisco&amp;lang=__LANG__">Cisco</a>
+<a href="/intel?products=Linux&amp;lang=__LANG__">Linux</a>
+</div>
+</form>
+
+<div class="cta inline">
+<span class="ja"><b>自社に関係あるものだけ知りたいときは</b> — 使っている製品と照合できます。<a href="/start">参加ガイド（5分）</a></span>
+<span class="en"><b>Only want the items that affect you?</b> — Match this list against your products. <a href="/start">Getting-started guide (5 min)</a></span>
+</div>
+
+<div class="legend">
+<span class="tag red"><span class="ja">悪用確認済み</span><span class="en">Actively exploited</span></span>
+<span class="tag amber"><span class="ja">注意喚起</span><span class="en">Advisory</span></span>
+<span class="tag gray"><span class="ja">週報</span><span class="en">Weekly</span></span>
+</div>
 __FILTER_NOTE__
+__EMPTY__
 <ul>
 __ROWS__
 </ul>
-<div class="cta"><b>自社に関係あるものだけ知りたいときは</b> — 使っている製品のリストと照らし合わせる照合キットがあります。<a href="/start">参加ガイド（5分）</a><br>
-<small>「米国政府の対応期限」はCISAが米国の政府機関向けに定めた日付です。目安としてお使いください。各項目の正確な影響範囲はリンク先の一次情報で確認してください。</small></div>
-</div></body></html>
+<div class="cta">
+<small><span class="ja">「米国政府の対応期限」はCISAが米国の政府機関向けに定めた日付です。目安としてお使いください。各項目の正確な影響範囲はリンク先の一次情報で確認してください。</span><span class="en">"US federal due date" is a deadline CISA sets for US government agencies; treat it as a rough guide. For the exact impact of each item, check the primary source linked from the title.</span></small>
+</div>
+</div>
+<script>
+(function(){
+  var root=document.documentElement;
+  var ja=document.getElementById('lang-ja'), en=document.getElementById('lang-en');
+  var status=document.getElementById('lang-status');
+  var TITLE={ja:'最新の脅威 — 守 Mamori',en:'Latest threats — Mamori'};
+  var DESC={ja:'CISA KEV（悪用確認済み）とJPCERT/CC注意喚起を6時間ごとに自動取得。登録不要で読めます。',
+            en:'CISA KEV (actively exploited) and JPCERT/CC advisories, refreshed every 6 hours. Free, no sign-up.'};
+  var meta=document.querySelector('meta[name="description"]');
+  function syncLinks(lang){
+    var fl=document.getElementById('filter-lang');
+    if(fl){fl.value=lang;}
+    var chips=document.querySelectorAll('.chips a');
+    for(var i=0;i<chips.length;i++){
+      try{
+        var u=new URL(chips[i].getAttribute('href'),location.origin);
+        u.searchParams.set('lang',lang);
+        chips[i].setAttribute('href',u.pathname+'?'+u.searchParams.toString());
+      }catch(e){}
+    }
+  }
+  function apply(lang,announce){
+    root.setAttribute('data-lang',lang);
+    root.setAttribute('lang',lang);
+    ja.setAttribute('aria-pressed', String(lang==='ja'));
+    en.setAttribute('aria-pressed', String(lang==='en'));
+    document.title=TITLE[lang];
+    if(meta){meta.setAttribute('content',DESC[lang]);}
+    syncLinks(lang);
+    if(announce&&status){status.textContent=(lang==='ja'?'日本語に切り替えました':'Switched to English');}
+  }
+  function choose(lang){
+    apply(lang,true);
+    try{localStorage.setItem('mamori_intel_lang',lang);}catch(e){}
+  }
+  ja.addEventListener('click',function(){choose('ja')});
+  en.addEventListener('click',function(){choose('en')});
+  apply(root.getAttribute('data-lang')==='en'?'en':'ja',false);
+})();
+</script>
+</body></html>

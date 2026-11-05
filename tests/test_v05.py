@@ -180,6 +180,24 @@ def test_hub() -> None:
         for path in ("/", "/start", "/terms", "/docs/keys"):
             st, _, body = req(base + path)
             check(f"page {path} 200", st == 200)
+        st, _, body = req(base + "/intel")
+        txt = body.decode()
+        check("intel: bilingual toggle + explanation", st == 200 and 'id="lang-en"' in txt
+              and "このページの読み方" in txt and "How to read this page" in txt, txt[:300])
+        check("intel: tags carry ja and en", "悪用確認済み" in txt and "Actively exploited" in txt)
+        check("intel: server renders lang=ja by default", 'data-lang="ja"' in txt and '<html lang="ja"' in txt)
+        st, _, body = req(base + "/intel?lang=en")
+        txt_en = body.decode()
+        check("intel: ?lang=en sets html lang/data-lang server-side",
+              '<html lang="en"' in txt_en and 'data-lang="en"' in txt_en, txt_en[:200])
+        check("intel: ?lang=en localizes title and description",
+              "<title>Latest threats" in txt_en and "CISA KEV (actively exploited)" in txt_en, txt_en[:400])
+        check("intel: product filter form present", 'action="/intel"' in txt and 'name="products"' in txt)
+        check("intel: no unreplaced placeholders", "__LANG__" not in txt_en and "__ROWS__" not in txt_en
+              and "__EMPTY__" not in txt_en and "__FILTER_NOTE__" not in txt_en
+              and "__TITLE__" not in txt_en and "__DESC__" not in txt_en)
+        st, _, body = req(base + "/intel?products=php")
+        check("intel: filter note bilingual", "選択中の製品" in body.decode() and "Selected products" in body.decode())
         st, _, body = req(base + "/")
         check("landing: no github link", b"github.com" not in body)
     finally:
