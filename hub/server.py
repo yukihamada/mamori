@@ -389,10 +389,14 @@ def render_intel(products: list[str] | None = None, lang: str = "ja") -> bytes:
         cls = ' class="fresh"' if cut and (o.get("published") or "") >= cut else ""
         if i in matched_set:
             cls = ' class="match"'
+        title = _clean_title(o.get("title"))
+        orig = ""
+        if lang == "en" and re.search(r"[\u3040-\u30ff\u4e00-\u9fff]", title):
+            orig = '<span class="orig" title="Original title is in Japanese">JA original</span> '
         rows.append(f'<li{cls}><span class="d">{_esc(o.get("published") or "—")}</span>'
                     f'<span class="tag {color}"><span class="ja">{kind_ja}</span><span class="en">{kind_en}</span></span>'
                     f'<span class="src">{_esc(src)}</span>'
-                    f'<a href="{_esc(o.get("url"))}" rel="noopener" target="_blank">{_esc(_clean_title(o.get("title")))}</a>{due}</li>')
+                    f'<a href="{_esc(o.get("url"))}" rel="noopener" target="_blank">{orig}{_esc(title)}</a>{due}</li>')
     created = (b.get("created") or "")[:16].replace("T", " ")
     html = _page("intel.html").decode()
     html = html.replace("__LANG__", lang)

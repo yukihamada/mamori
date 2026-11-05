@@ -21,16 +21,19 @@
 a{color:var(--accent)}h1{font-size:28px;margin:.2em 0}.lead{color:var(--muted);font-size:14px}
 .legend{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0;font-size:13px;color:var(--muted)}
 ul{list-style:none;padding:0;margin:16px 0}li{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:8px 0;font-size:14px;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline}
-li.fresh{border-color:var(--accent)}li a{flex-basis:100%;text-decoration:none;color:var(--text)}li a:hover{text-decoration:underline}
+li.fresh{border-color:var(--accent)}li a{flex-basis:100%;text-decoration:none;color:var(--text);padding:6px 0;min-height:44px;display:inline-flex;align-items:center}li a:hover{text-decoration:underline}
 .d{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}.src{color:var(--muted);font-size:12px}
 li.match{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 .filter-note{background:var(--surface);border:1px solid var(--accent);border-radius:10px;padding:10px 14px;font-size:13px;margin:12px 0}
 .tag{font-size:12px;font-weight:700;border-radius:999px;padding:1px 10px;border:1px solid}
 .tag.red{color:var(--red);border-color:var(--red)}.tag.amber{color:var(--amber);border-color:var(--amber)}.tag.gray{color:var(--muted);border-color:var(--border)}
 .due{font-size:12px;color:var(--muted)}.new{color:var(--accent);font-weight:700}
+.orig{font-size:10px;font-weight:700;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:0 5px;vertical-align:middle}
 .empty{background:var(--surface);border:1px dashed var(--border);border-radius:10px;padding:16px;color:var(--muted);font-size:14px}
 a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.skip{position:absolute;left:-9999px;top:0;background:var(--surface);color:var(--text);padding:10px 14px;border:1px solid var(--accent);border-radius:8px;z-index:10}
+.skip:focus{left:12px;top:12px}
 .cta{background:var(--surface);border:1px solid var(--accent);border-radius:12px;padding:16px;margin-top:24px;font-size:14px}
 .cta.inline{margin:16px 0 4px;font-size:13px}
 .filter{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin:16px 0;font-size:13px}
@@ -39,12 +42,12 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-off
 .filter input[type=text]{flex:1 1 200px;min-width:0;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit}
 .filter button{background:var(--accent);color:#04160a;border:0;border-radius:8px;padding:10px 18px;min-height:44px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
 .chips{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-top:10px;color:var(--muted);font-size:12px}
-.chips a{background:var(--bg);border:1px solid var(--border);border-radius:999px;padding:8px 12px;min-height:36px;display:inline-flex;align-items:center;text-decoration:none}
+.chips a{background:var(--bg);border:1px solid var(--border);border-radius:999px;padding:10px 14px;min-height:44px;display:inline-flex;align-items:center;text-decoration:none}
 .chips a:hover{border-color:var(--accent)}
 
 /* language switch */
 .lang{display:flex;gap:6px;justify-content:flex-end;margin:0 0 4px}
-.lang button{background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:8px 16px;min-height:40px;font-size:13px;cursor:pointer;font-family:inherit}
+.lang button{background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:8px 16px;min-height:44px;font-size:13px;cursor:pointer;font-family:inherit}
 .lang button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);font-weight:700}
 html[data-lang="ja"] .en{display:none!important}
 html[data-lang="en"] .ja{display:none!important}
@@ -62,7 +65,8 @@ html[data-lang="en"] .ja{display:none!important}
 .step:first-child{border-top:0}
 .step::before{counter-increment:s;content:counter(s);flex:0 0 22px;height:22px;border-radius:50%;background:var(--accent);color:#04160a;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;margin-top:2px}
 .step p{margin:0}
-</style></head><body><div class="wrap">
+</style></head><body><a class="skip" href="#main"><span class="ja">本文へスキップ</span><span class="en">Skip to content</span></a><div class="wrap">
+<main id="main">
 <div class="lang" role="group" aria-label="Language / 言語">
 <button type="button" id="lang-ja" aria-pressed="true">日本語</button>
 <button type="button" id="lang-en" aria-pressed="false">English</button>
@@ -126,16 +130,17 @@ Last fetched: <b>__UPDATED__</b> / __COUNT__ items / <span class="new">Green bor
 <div class="legend">
 <span class="tag red"><span class="ja">悪用確認済み</span><span class="en">Actively exploited</span></span>
 <span class="tag amber"><span class="ja">注意喚起</span><span class="en">Advisory</span></span>
-<span class="tag gray"><span class="ja">週報</span><span class="en">Weekly</span></span>
+<span class="tag gray"><span class="ja">週報</span><span class="en">Weekly report</span></span>
 </div>
-__FILTER_NOTE__
 __EMPTY__
+__FILTER_NOTE__
 <ul>
 __ROWS__
 </ul>
 <div class="cta">
 <small><span class="ja">「米国政府の対応期限」はCISAが米国の政府機関向けに定めた日付です。目安としてお使いください。各項目の正確な影響範囲はリンク先の一次情報で確認してください。</span><span class="en">"US federal due date" is a deadline CISA sets for US government agencies; treat it as a rough guide. For the exact impact of each item, check the primary source linked from the title.</span></small>
 </div>
+</main>
 </div>
 <script>
 (function(){
