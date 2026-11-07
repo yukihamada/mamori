@@ -1,22 +1,42 @@
-# 守（Mamori）— セキュリティの民主化エージェント
+# 守（Mamori）— 中小企業のための脅威インテル＋端末点検
 
 **みんなでレポートして、みんなで守る。**
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-3fb950.svg)](LICENSE)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-58a6ff.svg)](https://www.python.org/)
+[![dependencies: none](https://img.shields.io/badge/dependencies-none-8b949e.svg)](#設計メモ)
+[![Live](https://img.shields.io/badge/live-mamori.teai.io-3fb950.svg)](https://mamori.teai.io/)
+
+> うちの製品、今狙われてる？ — 登録不要・30秒で確認。CISA KEV／JPCERT/CC の最新情報から、自社に関係ある脅威を先頭に集めます。
+
+朝、出社してまず `https://mamori.teai.io/` を開き、使っている製品にチェックを入れて「この条件で最新の脅威を見る」を押す。今週の要対応が5分で分かる——そんな使い方を想定しています。
+
+![守 Mamori のランディング画面：製品チェックのカードと最新脅威への導線](docs/screenshots/hero.png)
+
 Mamoriは、最新の攻撃情報・脆弱性情報を自動で集め、自分の環境への適用範囲を照合し、対策の下書きまで出すセキュリティエージェントです。ある1社・1人が受けた攻撃の知見（IoC）をTLP管理つきで共有し、全員の防御に変える「集団免疫」を目指します。
 
-- 製品ページ: https://teai.io/mamori
-- ハブ: https://mamori.teai.io/
-- Live Intel（認証不要・TLP:CLEAR）: https://mamori.teai.io/api/latest
-- 公開カウンタ: https://mamori.teai.io/api/stats
-- 参加ガイド: https://mamori.teai.io/start
-- 照合キット: https://mamori.teai.io/kit.tar.gz
-- ソースコード（MIT）: https://github.com/yukihamada/mamori
+| リンク | URL |
+|---|---|
+| ハブ（実際に使える） | https://mamori.teai.io/ |
+| Live Intel（認証不要・TLP:CLEAR） | https://mamori.teai.io/api/latest |
+| 公開カウンタ | https://mamori.teai.io/api/stats |
+| 参加ガイド | https://mamori.teai.io/start |
+| 照合キット | https://mamori.teai.io/kit.tar.gz |
+| 製品ページ | https://teai.io/mamori |
+
+**提供形態**: 現在はベータ・無料です（参加者キーの発行も無料）。共有する観測データは Fly.io（東京リージョン）に保存し、90日で自動削除します。
+
+## 仕組み（一枚で）
+
+![Mamori の仕組み](docs/screenshots/architecture.svg)
+
+情報源（CISA KEV・JPCERT/CC・参加者の観測）→ ハブで自動匿名化・TLP管理・スタック照合 → 脅威レポート／Mac アプリ／公開 API として返る、という流れです。ハブは外部依存なし（Python 標準ライブラリのみ）で動きます。
 
 ## できること
 
 1. **受信・照合（守りの更新ループ）**
    - CISA KEV（悪用確認済み脆弱性カタログ）、JPCERT/CC注意喚起、JPCERT/CC週報を6時間ごとに自動取得（ハブ自身が取得）
-   - 自分のスタック（`agent/match_inventory.py` の watch リスト）と照合し、「要対応 / 要確認 / 関係なし」に分類
+   - 自分のスタック（`inventory.json` の watch リスト。`examples/inventory.example.json` をコピーして作る）と照合し、「要対応 / 要確認 / 関係なし」に分類
    - 関係あるものは対策チェックリスト（バージョン確認・CISA指定対応・期限）を下書き
 2. **共有（相互防御・TLP管理）**
    - 観測した攻撃をTLPラベル（CLEAR/GREEN/AMBER）付きで共有ハブへ投稿
@@ -25,7 +45,56 @@ Mamoriは、最新の攻撃情報・脆弱性情報を自動で集め、自分�
 3. **証跡**
    - レポートは `data/reports/` に日次保存。観測データは90日で自動削除
 
+## 画面で見る
+
+### 1. 自社に関係ある脅威だけを、その場で絞り込む（登録不要）
+使っている製品にチェックを入れて「この条件で最新の脅威を見る」を押すと、関係する脅威が先頭に並び、緑の枠で強調されます。選んだ製品名は `?products=...` としてURLに含まれ、一覧の並べ替えに使います（サーバーには保存しません）。
+
+![自社に関係ある脅威チェック：製品を選ぶチェックボックスと「この条件で最新の脅威を見る」ボタン](docs/screenshots/threat-check.png)
+
+絞り込むと、該当する項目が先頭に並び、緑の枠で強調されます（下は `?products=PHP` の例）。
+
+![絞り込み結果：PHP に関係する脅威が先頭に並び、緑の枠で強調された一覧](docs/screenshots/intel-filtered.png)
+
+### 2. 最新の脅威インテル（出典タグ＋直近7日の新着を強調）
+CISA KEV・JPCERT/CC の情報を6時間ごとに取得し、出典タグ（実際に悪用／注意喚起／週報）付きで一覧表示します。直近7日の新着は緑の枠で強調します。「要対応／要確認」の自社分類は、下の照合キット（`run.sh`）が手元の `inventory.json` と突き合わせて行います。
+
+![脅威一覧：CISA KEV・JPCERT/CC の項目が出典タグ付きで並び、直近7日の新着が緑の枠で強調された画面](docs/screenshots/intel.png)
+
+### 3. Mac アプリ「守」— この Mac を毎日採点
+メニューバーに常駐し、設定の穴を点検。安全で元に戻せる項目は自動で直し、締め出しのおそれがある項目は承認を待ちます。ターミナルは不要です。
+
+- **ダウンロード**: https://mamori.teai.io/MamoriBar.zip （展開して `MamoriBar.app` をアプリケーションフォルダへ）
+- 初回だけ、公証がないため「システム設定 → プライバシーとセキュリティ → このまま開く」が必要です
+- ソースは `app/`（MIT）。点検エンジンはアプリに同梱で、Python 3.9 以上があれば動きます
+
+![Mac アプリ「守」のメニューバー画面：守りの点数と7日間の推移、注意項目](docs/screenshots/menubar-app.png)
+
+![Mac アプリ「守」の紹介カード：ダウンロードボタンと3ステップの説明](docs/screenshots/mac-app.png)
+
+### 4. 参加ガイド（5分で導入）
+AI ツール（Claude Code / Codex / Sente）への登録から、照合キットの使い方まで、画面つきで案内します。
+
+![参加ガイド：AIツールへの登録手順と照合キットの使い方を示す画面](docs/screenshots/start.png)
+
+### 5. 仕組みと他ツールとの違い
+MISP・OpenCTI などの既存ツールとの違い（サーバ不要・ブラウザ完結）を整理しています。
+
+![仕組みと違い：MISP・OpenCTI との比較表がある画面](docs/screenshots/about.png)
+
 ## 使い方
+
+### 対応環境
+
+| 用途 | macOS | Windows | Linux |
+|---|---|---|---|
+| ハブを使う（API・レポート・共有） | ○ | ○ | ○ |
+| 照合キット（`run.sh`） | ○ | ○（Git Bash / WSL） | ○ |
+| Mamori Guard（端末の点検・自動修正） | ○ | ○（PowerShell・Python 3.9+） | ○ |
+| Mac アプリ「守」 | ○（macOS 13+） | — | — |
+| ハブを自前運用 | ○ | △（`fcntl` 非対応・未検証） | ○ |
+
+いずれも Python 3.9 以上が必要です（Mac アプリは同梱エンジンを使用）。
 
 ### AI エージェントから使う（Claude Code / Codex / Sente・いちばん簡単）
 ```bash
@@ -102,7 +171,7 @@ MAMORI_KEYS_JSON='{"key-alpha-001":{"org":"your-org","tlp_max":"AMBER"}}' \
 | `GET /api/latest` | 不要 | 最新の脅威インテル（TLP:CLEAR） |
 | `GET /api/stats` | 不要 | 参加組織数・観測件数・最終更新のカウンタ |
 | `POST /api/observations` | 参加者キー | 攻撃観測の投稿（TLP付・64KB上限・30回/時） |
-| `GET /api/observations` | 参加者キー | 自分のTLP権限までの観測一覧（直近200件）。キーなしは CLEAR のみ |
+| `GET /api/observations` | 任意（キー無しは CLEAR のみ） | 自分のTLP権限までの観測一覧（直近200件） |
 | `GET /api/whoami` | 参加者キー | キーの有効性確認（組織ハッシュとTLP上限のみ返す） |
 | `GET /api/stix` | 不要 | STIX 2.1 バンドル |
 | `GET /api/sample-report` | 不要 | 最新の対策下書きレポート |
