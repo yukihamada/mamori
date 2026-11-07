@@ -460,11 +460,11 @@ main{max-width:1100px;margin:0 auto;padding:0 1.5rem}
 .hero .tag{color:var(--accent);font-weight:600;font-size:1.15rem;margin-bottom:1rem}
 .hero p.lead{max-width:640px;margin:0 auto 1.8rem;color:var(--muted);font-size:1.05rem}
 .cta{display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap}
-.btn{display:inline-block;padding:.75rem 1.6rem;border-radius:8px;text-decoration:none;font-weight:600;font-size:1rem}
+.btn{display:inline-block;padding:.75rem 1.6rem;border-radius:8px;text-decoration:none;font-weight:600;font-size:1rem;font-family:inherit;cursor:pointer;line-height:1.4}
 .btn.primary{background:var(--accent);color:#04160a}
 .btn.primary:hover{background:#4ac95c}
-.btn.ghost{border:1px solid var(--border);color:var(--fg)}
-.btn.ghost:hover{border-color:var(--accent)}
+.btn.ghost{border:1px solid var(--border);color:var(--fg);background:transparent}
+.btn.ghost:hover{border-color:var(--accent);background:rgba(63,185,80,.10)}
 .stats{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin:2.5rem 0 0}
 .stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem 1.5rem;min-width:140px;text-align:center}
 .stat b{display:block;font-size:1.8rem;color:var(--accent)}
@@ -503,6 +503,8 @@ footer a{margin:0 .5rem}
 .mac-card-title{margin:0;font-weight:700;font-size:1rem}
 .mac-card-sub{margin:.2rem 0 0;color:var(--muted);font-size:.85rem}
 .mac-card-note{margin:.7rem 0 0;font-size:.78rem;color:var(--muted)}
+.mac-card-links{display:flex;gap:.6rem;flex-wrap:wrap;margin:.9rem 0 0}
+.mac-card-links .btn{padding:.6rem 1.1rem;font-size:.9rem}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media(max-width:600px){.hero h1{font-size:1.8rem}.stat b{font-size:1.4rem}}
 </style></head><body>
@@ -550,11 +552,15 @@ footer a{margin:0 .5rem}
 <div class="mac-card-icon">🖥️</div>
 <div class="mac-card-text">
 <p class="mac-card-title">Mac アプリ「守」— この Mac の守りを毎日採点</p>
-<p class="mac-card-sub">メニューバーに常駐し、設定の穴を点検・安全な項目は自動で修正。ダウンロードして開くだけ（登録不要）。</p>
+<p class="mac-card-sub">メニューバーに常駐するアプリです。起動すると、この Mac の設定（ファイアウォール・自動更新・暗号化・SSH など）を点検して 0〜100 点で採点し、<strong>安全で元に戻せる項目だけ</strong>を自動で直します。締め出しや再起動のおそれがある項目は勝手に直さず、「承認すれば直せる」として表示します。点検結果は <code>~/.mamori/</code> に保存され、外部には送信しません。ターミナルは不要です。</p>
 </div>
+</div>
+<p class="mac-card-links">
 <a class="btn primary" href="/MamoriBar.zip" download>⬇ Mac アプリをダウンロード</a>
-</div>
-<p class="mac-card-note">初回だけ「システム設定 → プライバシーとセキュリティ → このまま開く」が必要です（公証なしのため）。<a href="/start#mac">手順を見る</a></p>
+<a class="btn ghost" href="/start#mac">インストール手順（3ステップ）</a>
+<a class="btn ghost" href="https://github.com/yukihamada/mamori" rel="noopener" target="_blank">ソースコード（GitHub・MIT）</a>
+</p>
+<p class="mac-card-note">初回だけ「システム設定 → プライバシーとセキュリティ → このまま開く」が必要です（公証なしのため）。中身はすべてオープンソース（MIT）で、誰でもコードを確認できます。点検エンジンはアプリに同梱済みで、Python 3.9 以上があれば動きます。</p>
 </div>
 <div class="stats" id="stats">__STATS_HTML__</div>
 </section>
@@ -584,6 +590,15 @@ footer a{margin:0 .5rem}
 <li>AMBER指定の観測は参加者のみが閲覧</li>
 </ul>
 <p style="margin:.8rem 0 0"><small>それでも識別可能な情報（自社ドメイン等）は投稿前に除いてください。詳しくは<a href="/terms">データ取り扱い方針</a>へ。</small></p></div>
+
+<div class="card"><h2>📖 オープンソース（MIT）</h2>
+<p class="muted">Mamoriの本体・Mac アプリ・点検エンジンは、すべてソースコードを公開しています。中身を確認してから使えます。</p>
+<ul>
+<li><a href="https://github.com/yukihamada/mamori" rel="noopener" target="_blank">github.com/yukihamada/mamori</a> — ハブ・エージェント・Mac アプリ一式</li>
+<li>ライセンス: <strong>MIT</strong>（自由に利用・改変・再配布できます）</li>
+<li>依存は Python 標準ライブラリのみ。ビルド手順もリポジトリに記載</li>
+<li>脆弱性の報告は <a href="https://github.com/yukihamada/mamori/security/advisories/new" rel="noopener" target="_blank">GitHub の非公開レポート</a> または <a href="https://teai.io/contact">お問い合わせ</a> へ</li>
+</ul></div>
 </div>
 
 <p class="trust">情報源: <b>CISA KEV</b>（悪用確認済み脆弱性） · <b>JPCERT/CC 注意喚起</b> · <b>JPCERT/CC 週報</b> — 6時間ごとに自動取得 / 観測データは90日で自動削除</p>
@@ -591,7 +606,7 @@ footer a{margin:0 .5rem}
 <div class="en-note" lang="en"><strong>English:</strong> Mamori is a mutual-defense threat-intel hub. It auto-collects CISA KEV &amp; JPCERT advisories every 6 hours, matches them against your stack, and drafts countermeasures. Public TLP:CLEAR intel is free at <a href="/api/latest">/api/latest</a> (STIX 2.1 available). Observations are anonymized (IP /24, email stripped) and auto-deleted after 90 days.</div>
 </main>
 <footer>
-Mamori v0.5 — an Enabler project<br>
+Mamori v0.5 — an Enabler project · <a href="https://github.com/yukihamada/mamori" rel="noopener" target="_blank">オープンソース（MIT）</a><br>
 <a href="https://teai.io/mamori">製品ページ</a> · <a href="/terms">利用規約・データ取り扱い</a> · <a href="/docs/keys">キー管理運用手順</a> · <a href="/start">参加ガイド</a>
 </footer>
 <script>
@@ -1167,11 +1182,29 @@ onsubmit="return confirm('このキーを止めますか？止めると元に戻
     return _shell("鍵の発行・管理 — 守 Mamori", body)
 
 class Handler(BaseHTTPRequestHandler):
+    # 全応答に付ける防御ヘッダー。外部スクリプトの読み込みを禁じ、
+    # クリックジャッキング・MIME スニッフィング・base タグ注入を防ぐ。
+    # （インラインの style/script を使うため unsafe-inline は許可）
+    SECURITY_HEADERS = (
+        ("X-Content-Type-Options", "nosniff"),
+        ("X-Frame-Options", "DENY"),
+        ("Referrer-Policy", "strict-origin-when-cross-origin"),
+        ("Permissions-Policy", "geolocation=(), microphone=(), camera=()"),
+        ("Content-Security-Policy",
+         "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
+         "script-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'; "
+         "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"),
+    )
+
+    def _sec_headers(self):
+        for k, v in self.SECURITY_HEADERS:
+            self.send_header(k, v)
+
     def _send(self, code, body, ctype="application/json"):
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("X-Content-Type-Options", "nosniff")
+        self._sec_headers()
         self.end_headers()
         self.wfile.write(body)
 
@@ -1206,6 +1239,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Accept-Ranges", "bytes")
         self.send_header("Cache-Control", "public, max-age=86400")
         self.send_header("Access-Control-Allow-Origin", "*")
+        self._sec_headers()
         self.send_header("Content-Length", str(end - start + 1))
         if partial:
             self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
@@ -1228,6 +1262,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "application/gzip")
         self.send_header("Content-Disposition", 'attachment; filename="mamori-kit.tar.gz"')
+        self._sec_headers()
         self.send_header("Content-Length", str(len(_kit_cache["kit"])))
         self.end_headers()
 
@@ -1334,6 +1369,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/zip")
             self.send_header("Content-Disposition", f'attachment; filename="{f.name}"')
+            self._sec_headers()
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             self.wfile.write(data)
@@ -1413,14 +1449,14 @@ class Handler(BaseHTTPRequestHandler):
         if cookie is not None:
             self.send_header("Set-Cookie", cookie)
         self.send_header("Cache-Control", "no-store")
+        self._sec_headers()
         self.end_headers()
 
     def _html(self, code: int, body: bytes):
         self.send_response(code)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Cache-Control", "no-store")
-        self.send_header("X-Content-Type-Options", "nosniff")
-        self.send_header("Referrer-Policy", "no-referrer")
+        self._sec_headers()
         self.end_headers()
         self.wfile.write(body)
 
