@@ -517,12 +517,12 @@ footer a{margin:0 .5rem}
 <section class="hero">
 <svg class="shield-svg" viewBox="0 0 64 64" width="72" height="72" role="img" aria-label="Mamoriの盾ロゴ"><path d="M32 3 6 13v16c0 16 11 27 26 32 15-5 26-16 26-32V13L32 3z" fill="none" stroke="var(--accent)" stroke-width="3.5" stroke-linejoin="round"/><path d="M20 32l8 8 16-16" fill="none" stroke="var(--accent)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
 <h1>うちの製品、<br>今狙われてる？</h1>
-<p class="tag">登録不要・30秒で確認。CISA KEV／JPCERT/CC の最新情報から、自社に関係ある脅威だけを絞り込めます。</p>
+<p class="tag">登録不要・30秒で確認。CISA KEV／JPCERT/CC の最新情報から、自社に関係ある脅威を先頭に集めます。</p>
 <p class="lead">Mamoriは、最新の攻撃情報・脆弱性情報を6時間ごとに自動収集し、自社環境への影響を照合、対策の下書きまで出すセキュリティエージェントです。まずは下のチェックボックスで、使っている製品を選ぶだけ。キー・登録は不要です。</p>
 
 <div class="check-card" id="threat-check">
-<p class="check-title">🔍 自社に関係ある脅威チェック（キー不要・ブラウザ完結）</p>
-<p class="check-sub">使っている製品を選んでください。選択だけで下の「最新の脅威」が絞り込まれます。</p>
+<p class="check-title">🔍 自社に関係ある脅威チェック（キー不要）</p>
+<p class="check-sub">使っている製品を選ぶと、その製品に関係する脅威が分かります。「この条件で最新の脅威を見る」で、該当する項目を先頭に並べて緑の枠で示します。</p>
 <div class="check-grid" id="product-checks">
 <label><input type="checkbox" value="wordpress"> WordPress</label>
 <label><input type="checkbox" value="fortinet"> Fortinet (FortiOS/FortiGate)</label>
@@ -537,7 +537,7 @@ footer a{margin:0 .5rem}
 </div>
 <p class="check-actions"><a class="btn primary" id="check-go" href="/intel">この条件で最新の脅威を見る →</a>
 <button class="btn ghost" id="check-clear" type="button">選択をクリア</button></p>
-<p class="check-note">※ 絞り込みはブラウザ内で完結し、選択内容はサーバーに送信されません。</p>
+<p class="check-note">※ 選んだ製品名は <code>/intel?products=...</code> としてURLに含まれ、一覧の並べ替えに使います。サーバーには保存しません。</p>
 </div>
 
 <div class="cta">
