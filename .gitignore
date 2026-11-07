@@ -4,3 +4,10 @@ data/work/
 data/observations.jsonl
 app/.build/
 *.dSYM/
+
+# 生成物・実データ（環境依存・個人情報を含むため追跡しない）
+data/*.json
+data/*.log
+data/reports/
+!data/.gitkeep
+!examples/*.json

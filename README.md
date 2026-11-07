@@ -10,6 +10,7 @@ Mamoriは、最新の攻撃情報・脆弱性情報を自動で集め、自分�
 - 公開カウンタ: https://mamori.teai.io/api/stats
 - 参加ガイド: https://mamori.teai.io/start
 - 照合キット: https://mamori.teai.io/kit.tar.gz
+- ソースコード（MIT）: https://github.com/yukihamada/mamori
 
 ## できること
 
@@ -135,3 +136,24 @@ curl -X POST https://mamori.teai.io/api/observations \
 - 照合はキーワード＋CPE/SBOM（agent/match_cpe.py）。STIX 2.1 エクスポート対応済み、TAXII はロードマップ。
 - 対策の**実行**（パッチ適用・WAF追加）は本エージェントは行わず、下書き＋承認フローに委ねる。
 - 運営: Enabler（teai.io）。問い合わせは https://teai.io/contact
+
+## オープンソース（MIT）
+
+Mamori の本体・Mac アプリ・点検エンジンは、すべてソースコードを公開しています。中身を確認してから使えます。
+
+- ライセンス: **MIT**（自由に利用・改変・再配布できます）— [LICENSE](LICENSE)
+- 依存は Python 標準ライブラリのみ。外部パッケージのインストールは不要です。
+- セキュリティポリシー・脆弱性の報告先: [SECURITY.md](SECURITY.md)（GitHub の非公開レポート推奨）
+- サプライチェーン対策: GitHub Actions はタグではなく不変のコミット SHA に固定、ワークフローは最小権限（`permissions: contents: read`）で実行します。
+
+### ローカルで動かす
+
+```bash
+git clone https://github.com/yukihamada/mamori.git
+cd mamori
+python3 -m py_compile hub/server.py agent/*.py
+python3 tests/test_v05.py && python3 tests/test_mamori.py
+python3 hub/server.py            # ハブをローカル起動（既定 :8080）
+```
+
+生成物（`data/*.json`・`data/reports/`・`data/*.log`）は環境依存のため追跡していません。自分の環境の一覧は `cp examples/inventory.example.json inventory.json` から作り、`MAMORI_INVENTORY=inventory.json bash run.sh` で使えます。

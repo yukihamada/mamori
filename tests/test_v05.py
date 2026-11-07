@@ -225,7 +225,7 @@ def test_hub() -> None:
               f"missing={body_tags - legend_tags}")
         check("intel: en titles drop trailing 号", "号<" not in t_en and "号</a>" not in t_en)
         st, _, body = req(base + "/")
-        check("landing: no github link", b"github.com" not in body)
+        check("landing: links to open-source repo", b"github.com/yukihamada/mamori" in body)
     finally:
         proc.terminate()
         probe.unlink(missing_ok=True)

@@ -1,7 +1,7 @@
 # スコア履歴 — mamori.teai.io レビュー
 
 ## 対象
-- ファイル: `/Users/yukihamada/workspace/mamori/5axis-review.md`
+- ファイル: `5axis-review.md`
 - ペルソナ: セキュリティコンサルタント・情シス部門長
 - 評価基準: 7軸100点満点
 
