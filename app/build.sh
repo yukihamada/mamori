@@ -11,7 +11,7 @@ APP_DIR="$(cd .. && pwd)"
 
 APP_NAME="MamoriBar"
 BUNDLE_ID="io.teai.mamori.bar"
-VERSION="0.2.0"
+VERSION="0.4.0"
 INSTALL=1
 [ "${1:-}" = "--no-install" ] && INSTALL=0
 DEST="${MAMORI_APP_DIR:-$HOME/Applications}/守.app"

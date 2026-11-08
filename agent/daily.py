@@ -27,13 +27,14 @@ HOME = Path.home()
 DEFAULT_STATE = HOME / ".mamori"
 GUARD_CANDIDATES = [
     os.environ.get("MAMORI_GUARD", ""),
-    str(HOME / ".mamori" / "kit" / "mamori" / "agent" / "mamori_guard.py"),
     str(Path(__file__).resolve().parent / "mamori_guard.py"),
+    str(HOME / ".mamori" / "kit" / "mamori" / "agent" / "mamori_guard.py"),
 ]
 
 # スコアの重み（guard の findings の weight をそのまま使う）。
 # 100点 = 重み付きで全項目が ok。weak は減点、info は採点対象外。
-STATUS_JA = {"ok": "できている", "weak": "要改善", "unknown": "未確認", "info": "参考"}
+STATUS_JA = {"ok": "できている", "weak": "要改善", "ack": "対応済み（確認待ち）",
+             "unknown": "未確認", "info": "参考"}
 TIER_JA = {"auto": "自動で直せる", "confirm": "承認すれば直せる", "manual": "手作業が必要"}
 
 
@@ -95,9 +96,34 @@ def upsert_today(rows: list[dict], entry: dict) -> list[dict]:
     return out
 
 
-def summarize(report: dict, prev: dict | None, history: list[dict]) -> dict:
+def load_ack(sd: Path) -> dict[str, str]:
+    """アプリで「対応した」と記録された項目ID→記録日。"""
+    p = sd / "acknowledged.json"
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    if isinstance(data, dict):
+        return {k: str(v) for k, v in data.items() if isinstance(k, str)}
+    if isinstance(data, list):  # 旧形式（日付なし）は今日として扱う
+        return {x: today_str() for x in data if isinstance(x, str)}
+    return {}
+
+
+def summarize(report: dict, prev: dict | None, history: list[dict], acked: dict[str, str] | None = None) -> dict:
+    acked = acked or {}
+    today = today_str()
     findings = report.get("findings", [])
-    weak = [f for f in findings if f.get("status") == "weak"]
+    # 「対応した」は当日ぶんだけ表示を静める。翌日以降もまだ weak なら再登場させ、
+    # 実際に直ったかを次の点検で確かめる（点数は水増ししない）。
+    def effective(f: dict) -> str:
+        if f.get("status") == "weak" and acked.get(f.get("id", "")) == today:
+            return "ack"
+        return f.get("status", "")
+    weak = [f for f in findings if effective(f) == "weak"]
+    ack_weak = [f for f in findings if effective(f) == "ack"]
+    all_weak = [f for f in findings if f.get("status") == "weak"]
+    # 点数は guard の実スコア。ack では加点しない（未修正を「直った」扱いにしない）。
     score = report.get("score")
     prev_score = (prev or {}).get("score")
     delta = (score - prev_score) if (score is not None and prev_score is not None) else None
@@ -105,7 +131,7 @@ def summarize(report: dict, prev: dict | None, history: list[dict]) -> dict:
     # 7日ぶんの推移（古い→新しい）。今日を含める。
     trend = [{"date": r["date"], "score": r.get("score")} for r in history[-7:]]
 
-    # いま直すべき上位（重い weak から）
+    # いま直すべき上位（重い weak から）。ack 済みは出さない。
     actions = sorted(weak, key=lambda f: -int(f.get("weight", 0)))
     top = [{"id": f["id"], "title": f.get("title", ""), "detail": f.get("detail", ""),
             "weight": f.get("weight", 0), "tier": f.get("tier", ""),
@@ -125,13 +151,15 @@ def summarize(report: dict, prev: dict | None, history: list[dict]) -> dict:
         "delta": delta,
         "grade": grade(score),
         "counts": {"ok": sum(1 for f in findings if f.get("status") == "ok"),
-                   "weak": len(weak),
+                   "weak": len(all_weak),
+                   "ack": len(ack_weak),
                    "total": sum(1 for f in findings if f.get("status") in ("ok", "weak"))},
         "trend": trend,
-        "findings": [{"id": f["id"], "title": f.get("title", ""), "status": f.get("status", ""),
-                      "status_ja": STATUS_JA.get(f.get("status", ""), ""),
+        "findings": [{"id": f["id"], "title": f.get("title", ""), "status": effective(f),
+                      "status_ja": STATUS_JA.get(effective(f), ""),
                       "detail": f.get("detail", ""), "weight": f.get("weight", 0),
-                      "tier": f.get("tier", ""), "tier_ja": TIER_JA.get(f.get("tier", ""), "")}
+                      "tier": f.get("tier", ""), "tier_ja": TIER_JA.get(f.get("tier", ""), ""),
+                      "how": f.get("how", "")}
                      for f in findings],
         "top_actions": top,
         "history_days": len(history),
@@ -194,20 +222,30 @@ def main() -> int:
 
     report = run_guard(guard, ["scan"])
 
+    acked = load_ack(sd)
     hist_path = sd / "history.jsonl"
     rows = load_history(hist_path)
     prev = rows[-1] if rows else None
     if prev and prev.get("date") == today_str():
         prev = rows[-2] if len(rows) > 1 else None
 
-    entry = {"date": today_str(), "score": report.get("score"),
-             "counts": {"ok": sum(1 for f in report.get("findings", []) if f.get("status") == "ok"),
-                        "weak": sum(1 for f in report.get("findings", []) if f.get("status") == "weak")},
+    # 履歴にも status と同じ実スコアを記録し、食い違わせない。
+    # 「対応した」は当日ぶん表示を静めるだけで、点数は実スコアのまま据え置く。
+    findings = report.get("findings", [])
+    today = today_str()
+    # status.counts と同じ基準（weak は ack を含む実数、ack は別枠）で記録し、
+    # status と history で件数が食い違わないようにする。
+    entry = {"date": today,
+             "score": report.get("score"),
+             "counts": {"ok": sum(1 for f in findings if f.get("status") == "ok"),
+                        "weak": sum(1 for f in findings if f.get("status") == "weak"),
+                        "ack": sum(1 for f in findings if f.get("status") == "weak"
+                                   and acked.get(f.get("id", "")) == today)},
              "fixed": fixed}
     rows = upsert_today(rows, entry)
     save_history(hist_path, rows)
 
-    status = summarize(report, prev, rows)
+    status = summarize(report, prev, rows, acked)
     status["fixed_today"] = fixed
     if attacks:
         status["attacks"] = {"total_observations": attacks["total_observations"],
@@ -216,7 +254,10 @@ def main() -> int:
                              "top": [{"type_ja": it["type_ja"], "pattern": it["pattern"],
                                       "count": it.get("count", 1)}
                                      for it in attacks["items"][:5]]}
-    (sd / "status.json").write_text(json.dumps(status, ensure_ascii=False, indent=1), encoding="utf-8")
+    status_path = sd / "status.json"
+    tmp = status_path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(status, ensure_ascii=False, indent=1), encoding="utf-8")
+    tmp.replace(status_path)
 
     if a.quiet:
         d = status["delta"]
