@@ -68,6 +68,24 @@ rm -f "$ZIP"
 ditto -c -k --keepParent --norsrc --noextattr "$BUNDLE" "$ZIP"
 echo "[zip] $ZIP ($(du -h "$ZIP" | cut -f1))"
 
+# 公証 + staple（Developer ID 署名済みのときだけ）。notarytool の
+# キーチェーンプロファイルは MAMORI_NOTARY_PROFILE（既定 "notary"）。
+# 失敗しても署名済み zip は残すが、Gatekeeper-clean 配布には公証が要る。
+if [ -n "$IDENTITY" ]; then
+  NOTARY_PROFILE="${MAMORI_NOTARY_PROFILE:-notary}"
+  echo "[notarize] submit $ZIP (profile: $NOTARY_PROFILE)"
+  if xcrun notarytool submit "$ZIP" --keychain-profile "$NOTARY_PROFILE" --wait; then
+    xcrun stapler staple "$BUNDLE"
+    xcrun stapler validate "$BUNDLE"
+    # staple 後の .app で zip を作り直す（staple チケットを同梱するため）
+    rm -f "$ZIP"
+    ditto -c -k --keepParent --norsrc --noextattr "$BUNDLE" "$ZIP"
+    echo "[notarize] stapled & re-zipped: $ZIP"
+  else
+    echo "[notarize] WARN: notarization failed; zip is signed but NOT notarized" >&2
+  fi
+fi
+
 if [ "$INSTALL" = 1 ]; then
   mkdir -p "$(dirname "$DEST")"
   rm -rf "$DEST"
