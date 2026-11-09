@@ -250,6 +250,34 @@ def test_ai_plaintext_keys_ok_when_absent():
     assert f["ai.plaintext_keys"]["status"] == "ok"
 
 
+def test_process_env_flags_secrets_without_leaking_values(monkeypatch):
+    ant = "sk-ant-api03-" + "a" * 40
+    monkeypatch.setattr(g, "_scan_ps_environ",
+                        lambda s: {k: 1 for k in g._env_secret_kinds(f"ANTHROPIC_API_KEY={ant}")})
+    s = Fake("darwin", MAC_WEAK, admin=False)
+    s.env["HOME"] = "/Users/u"
+    rep = g.scan(s, "client", "standard", Path(tempfile.mkdtemp()), with_intel=False)
+    f = by_id(rep)["proc.env_exposure"]
+    assert f["status"] == "weak" and f["tier"] == g.MANUAL
+    assert "AI の API キー" in f["detail"]
+    assert ant not in json.dumps(rep) and "aaaa" not in json.dumps(rep)
+    assert not f["fix"]  # 自動では触らない
+
+
+def test_process_env_ok_when_no_secret(monkeypatch):
+    monkeypatch.setattr(g, "_scan_ps_environ", lambda s: {})
+    s = Fake("darwin", MAC_WEAK, admin=False)
+    s.env["HOME"] = "/Users/u"
+    f = by_id(g.scan(s, "client", "standard", Path(tempfile.mkdtemp()), with_intel=False))
+    assert f["proc.env_exposure"]["status"] == "ok"
+
+
+def test_env_secret_kinds_detects_db_url_and_private_key():
+    kinds = g._env_secret_kinds("DATABASE_URL=postgres://u:p@db:5432/x\n-----BEGIN RSA PRIVATE KEY-----")
+    assert "DB 接続文字列" in kinds and "秘密鍵" in kinds
+    assert g._env_secret_kinds("PATH=/usr/bin\nHOME=/root") == set()
+
+
 ATTACKS = {
     "total_observations": 3, "total_attempts": 7,
     "by_type": {"http_probe": 2, "payload": 1},

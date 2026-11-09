@@ -36,6 +36,12 @@ def test_classify_does_not_invent_defenses():
     assert it["defenses"] == []
 
 
+def test_classify_links_agent_host_exec_to_process_env():
+    it = a.classify({"type": "other",
+                     "pattern": "コード実行ツールが /proc/<pid>/environ から環境変数を読み出した"})
+    assert "proc.env_exposure" in [d["finding"] for d in it["defenses"]]
+
+
 def test_summarize_counts_types_and_attempts():
     items = [a.classify({"type": "http_probe", "pattern": "p1", "count": 5}),
              a.classify({"type": "payload", "pattern": "p2", "count": 2})]

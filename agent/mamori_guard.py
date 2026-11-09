@@ -770,6 +770,82 @@ def _openai_only(t: str) -> bool:
                for m in AI_KEY_PATTERNS[2][1].finditer(t))
 
 
+# 常駐プロセスの環境変数に残る「秘密らしき値」の手掛かり（値は記録も表示もしない）
+SECRET_ENV_PATTERNS = [
+    ("AI の API キー", re.compile(r"(?:sk-ant-|sk-or-v1-|sk-proj-|AIza|xai-|gsk_|hf_)[A-Za-z0-9_-]{20,}")),
+    ("DB 接続文字列", re.compile(r"(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis)://[^\s:/@]+:[^\s@]+@")),
+    ("秘密鍵", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----")),
+    ("クラウドの鍵", re.compile(r"(?:AKIA|ASIA)[0-9A-Z]{16}")),
+    ("汎用トークン", re.compile(r"(?:SECRET|TOKEN|PASSWORD|API_KEY|ACCESS_KEY)\s*=\s*[^\s'\"]{12,}")),
+]
+
+
+def _env_secret_kinds(blob: str) -> set[str]:
+    return {label for label, rx in SECRET_ENV_PATTERNS if rx.search(blob)}
+
+
+def _scan_proc_environ(s: System, limit: int = 2000) -> dict[str, int]:
+    """Linux: /proc/<pid>/environ を読める範囲で走査し、秘密らしき値を持つプロセスを数える。
+
+    値そのものは保持しない。読み取り権限の無いプロセス（他ユーザー）は黙って飛ばす。
+    """
+    found: dict[str, int] = {}
+    try:
+        pids = [p for p in Path("/proc").iterdir() if p.name.isdigit()]
+    except Exception:
+        return found
+    for i, p in enumerate(pids[:limit]):
+        try:
+            raw = (p / "environ").read_bytes()
+        except Exception:
+            continue
+        if not raw:
+            continue
+        kinds = _env_secret_kinds(raw.decode("utf-8", "replace"))
+        for k in kinds:
+            found[k] = found.get(k, 0) + 1
+    return found
+
+
+def _scan_ps_environ(s: System) -> dict[str, int]:
+    """macOS など: ps eww で自ユーザーのプロセス環境を読み、秘密らしき値を持つ行を数える。"""
+    found: dict[str, int] = {}
+    rc, out = s.run(["ps", "eww", "-ax", "-o", "pid=,command="], 30)
+    if rc != 0 or not out:
+        return found
+    for line in out.splitlines():
+        kinds = _env_secret_kinds(line)
+        for k in kinds:
+            found[k] = found.get(k, 0) + 1
+    return found
+
+
+def check_process_env(s: System) -> list[dict]:
+    """常駐プロセスの環境変数に秘密が残っていないか（AIエージェントのホスト実行で読まれる実体）。
+
+    2026-11 の実例: コード実行ツールが同じ機械で root として動き、/proc/<pid>/environ から
+    本番プロセスの DB 接続情報・秘密鍵・外部 API 鍵を読み出せた。子プロセスの env_clear() だけでは
+    防げない。値は一切持たず、種類とプロセス数だけを報告する。
+    """
+    if s.os == "windows":
+        return [finding("proc.env_exposure", "常駐プロセスの環境変数の秘密", "unknown",
+                        "Windows は未対応（手動で確認してください）", weight=0, admin=False)]
+    found = _scan_proc_environ(s) if s.os == "linux" else _scan_ps_environ(s)
+    if not found:
+        return [finding("proc.env_exposure", "常駐プロセスの環境変数の秘密", "ok",
+                        "読める範囲に秘密らしき値は見つかりませんでした", weight=2, admin=False)]
+    total = sum(found.values())
+    kinds = "、".join(f"{k}×{n}" for k, n in sorted(found.items()))
+    return [finding("proc.env_exposure", "常駐プロセスの環境変数の秘密", "weak",
+                    f"{total} 個のプロセス環境に秘密らしき値（{kinds}）。"
+                    "同じ機械で動くコード実行から /proc/<pid>/environ で読まれ得ます",
+                    tier=MANUAL, weight=3, admin=False,
+                    how="①ホストでコマンドを実行する道具（code_execute 等）を既定で無効化し、"
+                        "隔離サンドボックスでのみ有効化する ②秘密はプロセスの環境変数に置かず、"
+                        "起動時ではなく利用時に秘密管理（Vault 等）から取得する ③漏えいの心当たりが"
+                        "あれば先に再発行（rotate）してから利用履歴を確認する")]
+
+
 def detect_profile(s: System) -> str:
     if s.os == "windows":
         rc, out = s.ps("(Get-CimInstance Win32_OperatingSystem).ProductType")
@@ -820,6 +896,7 @@ def scan(s: System, profile: str, level: str, sd: Path, with_intel: bool = True)
     checks = {"darwin": check_macos, "linux": check_linux, "windows": check_windows}[s.os]
     f = checks(s, profile, level)
     f += check_ai_keys(s)
+    f += check_process_env(s)
     intel_src = "skipped"
     if with_intel:
         intel, intel_src = load_intel(s, sd)
