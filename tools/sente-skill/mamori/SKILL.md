@@ -10,10 +10,10 @@ Mamori の最新脅威情報（CISA KEV・JPCERT/CC、https://mamori.teai.io/api
 
 ## 入手（未取得なら）
 ```bash
-D=~/.mamori/kit; mkdir -p $D && curl -fsSL https://mamori.teai.io/kit.tar.gz | tar xz -C $D
+D=~/.mamori/kit; mkdir -p $D && curl -fsSL -H "X-Mamori-Key: $(cat ~/.config/mamori/key)" https://mamori.teai.io/kit.tar.gz | tar xz -C $D
 G=$D/mamori/agent/mamori_guard.py
 ```
-Windows（PowerShell）: `iwr https://mamori.teai.io/kit.tar.gz -OutFile $env:TEMP\m.tgz; tar xzf $env:TEMP\m.tgz -C $env:TEMP; $G="$env:TEMP\mamori\agent\mamori_guard.py"`（python は `py`）
+Windows（PowerShell）: `iwr -Headers @{'X-Mamori-Key'=$env:MAMORI_KEY} https://mamori.teai.io/kit.tar.gz -OutFile $env:TEMP\m.tgz; tar xzf $env:TEMP\m.tgz -C $env:TEMP; $G="$env:TEMP\mamori\agent\mamori_guard.py"`（python は `py`）
 
 ## 手順（この順で）
 1. **点検**: `python3 $G scan`（機械可読は `--json`）。点数・⚠️項目・tier を報告する。
@@ -36,13 +36,13 @@ Windows（PowerShell）: `iwr https://mamori.teai.io/kit.tar.gz -OutFile $env:TE
 ## サーバー（リモート）
 本人が対象ホストを示した時だけ、そのホストに対して上と同じ手順を ssh 経由で行う:
 ```bash
-ssh HOST 'mkdir -p ~/.mamori/kit && curl -fsSL https://mamori.teai.io/kit.tar.gz | tar xz -C ~/.mamori/kit && python3 ~/.mamori/kit/mamori/agent/mamori_guard.py scan'
+ssh HOST 'mkdir -p ~/.mamori/kit && curl -fsSL -H "X-Mamori-Key: $(cat ~/.config/mamori/key)" https://mamori.teai.io/kit.tar.gz | tar xz -C ~/.mamori/kit && python3 ~/.mamori/kit/mamori/agent/mamori_guard.py scan'
 ```
 SSH設定の変更は**今の接続を切らない**が、変更後に**別ターミナルで新規接続できること**を確認してから終える。
 入れなければ `rollback`。fly.io 等のコンテナ（使い捨て）は Dockerfile 側で直すのが正しいので、点検結果を下書きとして返す。
 
 ## 脅威情報・共有
-- 最新の攻撃情報: `curl -s https://mamori.teai.io/api/latest`（人向け一覧: https://mamori.teai.io/intel）
+- 最新の攻撃情報: `curl -s -H "X-Mamori-Key: $(cat ~/.config/mamori/key)" https://mamori.teai.io/api/latest`（人向け一覧: https://mamori.teai.io/intel）
 - 観測の共有は組織キー（`MAMORI_KEY`）が必要: `bash <kit>/mamori/tools/share.sh "手口" 件数 GREEN`。
   キーをチャット・メモリ・コミットに平文で残さない。IP・社内ホスト名など識別情報は共有前に除く。
 

@@ -155,6 +155,85 @@ def org_hash(org: str) -> str:
     return hmac.new(ORG_SALT.encode(), ("mamori-org:" + org).encode(), hashlib.sha256).hexdigest()[:10]
 
 
+# --- 招待制（2026-11-10〜） ---------------------------------------------------
+# 守り方・道具・観測を知られないよう、ハブの中身は参加者キーを持つ人にだけ見せる。
+# 誰でも見られるのは: 招待制の案内・死活確認・利用規約・配信停止・既存アカウントのログインだけ。
+# キーの渡し方: ヘッダー X-Mamori-Key（API/コマンド）／ブラウザは ?k= か /enter で
+# 12時間だけ有効な署名つきクッキー（中身はキーのハッシュ＋期限。キー本体は入れない）。
+# キーはどこにもログしない（log_message は無効化済み）。
+INVITE_ONLY = os.environ.get("MAMORI_INVITE_ONLY", "1") != "0"
+INVITE_SINCE = "2026-11-10"
+CONTACT_URL = "https://teai.io/contact"
+PUBLIC_PATHS = {"/healthz", "/terms", "/robots.txt", "/enter", "/account", "/account/verify",
+                "/newsletter/unsub"}
+MEMBER_COOKIE = "mamori_m"
+MEMBER_TTL = 12 * 3600
+_KEY_BY_HASH = {hashlib.sha256(k.encode()).hexdigest(): v for k, v in KEYS.items()}
+
+
+def _cookie_sig(payload: str) -> str:
+    import hmac
+    secret = ("mamori-member-cookie:" + (ORG_SALT or "mamori-dev-salt")).encode()
+    return hmac.new(secret, payload.encode(), hashlib.sha256).hexdigest()[:40]
+
+
+def member_token(key: str, now: float | None = None) -> str:
+    exp = int((now or time.time()) + MEMBER_TTL)
+    payload = f"{exp}.{hashlib.sha256(key.encode()).hexdigest()}"
+    return f"{payload}.{_cookie_sig(payload)}"
+
+
+def lookup_token(tok: str | None) -> dict | None:
+    """クッキーの署名と期限を確かめ、元のキーが今も有効か（失効していないか）を毎回引き直す。"""
+    try:
+        exp, h, sig = (tok or "").split(".")
+        if int(exp) < time.time() or not hmac_eq(sig, _cookie_sig(f"{exp}.{h}")):
+            return None
+    except ValueError:
+        return None
+    return _KEY_BY_HASH.get(h) or STORE.lookup_hash(h)
+
+
+INVITE_JSON = {"error": "invite_only",
+               "message": f"守（Mamori）は招待制になりました（{INVITE_SINCE}〜）。利用を希望する方は {CONTACT_URL} からご連絡ください。"
+                          "参加者の方はキーを X-Mamori-Key ヘッダーで渡してください。",
+               "contact": CONTACT_URL}
+
+
+def render_invite(msg: str = "", next_path: str = "/") -> bytes:
+    err = f'<p class="err" role="alert">{_esc(msg)}</p>' if msg else ""
+    return f"""<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>守（Mamori）招待制のご案内</title>
+<style>:root{{--bg:#fff;--fg:#1a1a1a;--muted:#5b6470;--accent:#2f6f4f;--border:#d8dde3}}
+@media (prefers-color-scheme:dark){{:root{{--bg:#0f1419;--fg:#e6e9ed;--muted:#9aa4ae;--accent:#6fcf97;--border:#2a323b}}}}
+body{{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Hiragino Sans",sans-serif;line-height:1.8}}
+main{{max-width:560px;margin:0 auto;padding:3rem 16px}}h1{{font-size:1.4rem;line-height:1.5}}
+a{{color:var(--accent)}}.muted{{color:var(--muted);font-size:.9rem}}.err{{color:#c0392b;font-weight:600}}
+form{{margin-top:1.5rem;padding:1rem;border:1px solid var(--border);border-radius:10px}}
+label{{display:block;font-weight:600;margin-bottom:.4rem}}
+input[type=password]{{width:100%;box-sizing:border-box;padding:.6rem;font-size:1rem;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg)}}
+button{{margin-top:.8rem;padding:.6rem 1.2rem;font-size:1rem;border:0;border-radius:8px;background:var(--accent);color:#fff;cursor:pointer}}</style>
+</head><body><main>
+<h1>🛡 守（Mamori）は招待制になりました（{INVITE_SINCE}〜）</h1>
+<p>利用を希望する方は <a href="{CONTACT_URL}">{CONTACT_URL}</a> からご連絡ください。</p>
+<p>すでに参加している方は、お渡ししたキーをお使いください。</p>
+{err}
+<form method="post" action="/enter"><label for="k">参加者キー</label>
+<input id="k" name="key" type="password" autocomplete="off" required>
+<input type="hidden" name="next" value="{_esc(next_path)}">
+<button type="submit">入る</button>
+<p class="muted">コマンドやAPIからは <code>X-Mamori-Key</code> ヘッダーでキーを渡してください。</p></form>
+<p class="muted" lang="en">Mamori is now invite-only. To request access, contact us at {CONTACT_URL}.</p>
+</main></body></html>""".encode()
+
+
+def _safe_next(n: str) -> str:
+    n = (n or "/").strip()
+    return n if n.startswith("/") and not n.startswith("//") and "\\" not in n and len(n) < 300 else "/"
+
+
 def _stats() -> dict:
     obs = _read_obs()
     intel, last = 0, None
@@ -1004,12 +1083,12 @@ TLP_EXPLAIN = {
 def render_account_login(msg: str = "") -> bytes:
     flash = f'<p class="err">{_esc(msg)}</p>' if msg else ""
     body = f"""<div class="card"><h2>🔑 鍵の発行・管理</h2>
-<p class="muted">メールアドレスを入れると、ログイン用のリンクが届きます。リンクを開くと、その場で鍵（参加者キー）を発行・確認・停止できます。ベータ期間中は無料です。</p>
+<p class="muted">守（Mamori）は招待制です（2026-11-10〜）。招待済みのメールアドレスを入れると、ログイン用のリンクが届きます。利用を希望する方は <a href="https://teai.io/contact">teai.io/contact</a> からご連絡ください。</p>
 {flash}
 <form method="post" action="/account/login"><label for="email">メールアドレス</label>
 <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.co.jp" required>
 <p style="margin-top:1rem"><button class="btn primary" type="submit">ログイン用のリンクを送る</button></p></form>
-<p class="muted" style="font-size:.85rem">会社のドメインのメールで登録すると、参加している会社の共有（緑）まで見られます。フリーメールの場合は、まず公開分（白）からです。パスワードはありません。</p></div>"""
+<p class="muted" style="font-size:.85rem">パスワードはありません。</p></div>"""
     return _shell("鍵の発行・管理 — 守 Mamori", body)
 
 
@@ -1237,7 +1316,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(206 if partial else 200)
         self.send_header("Content-Type", ctype)
         self.send_header("Accept-Ranges", "bytes")
-        self.send_header("Cache-Control", "public, max-age=86400")
+        self.send_header("Cache-Control", "private, max-age=3600")
         self.send_header("Access-Control-Allow-Origin", "*")
         self._sec_headers()
         self.send_header("Content-Length", str(end - start + 1))
@@ -1268,6 +1347,13 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_HEAD(self):
         path = urlparse(self.path).path
+        if INVITE_ONLY and path not in PUBLIC_PATHS and not self._member():
+            self.send_response(200 if path == "/" else 401)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self._sec_headers()
+            self.end_headers()
+            return
         if path.startswith("/media/"):
             return self._media(path[len("/media/"):])
         if path == "/kit.tar.gz":
@@ -1283,13 +1369,50 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_header("Content-Length", str(f.stat().st_size))
             self.end_headers()
             return
-        self.send_response(200 if path in ("/", "/healthz", "/install.sh", "/install.ps1", "/start", "/intel", "/my", "/post", "/api", "/status", "/about", "/agent", "/newsletter") else 404)
+        self.send_response(200 if path in ("/", "/healthz", "/terms", "/robots.txt", "/enter", "/install.sh", "/install.ps1", "/start", "/intel", "/my", "/post", "/api", "/status", "/about", "/agent", "/newsletter") else 404)
         self.end_headers()
 
     def _caller(self) -> dict | None:
+        """APIの呼び出し元（ヘッダーかクエリでキーを明示したときだけ。クッキーは見ない）。"""
         q = parse_qs(urlparse(self.path).query)
-        key = self.headers.get("X-Mamori-Key") or q.get("key", [None])[0]
+        key = self.headers.get("X-Mamori-Key") or q.get("key", [None])[0] or q.get("k", [None])[0]
         return lookup_key(key)
+
+    def _cookie(self, name: str) -> str:
+        for part in (self.headers.get("Cookie") or "").split(";"):
+            k, _, v = part.strip().partition("=")
+            if k == name:
+                return v
+        return ""
+
+    def _member(self) -> dict | None:
+        """閲覧の可否: キーを明示していればそれだけで判定、無ければブラウザの短期クッキー。"""
+        q = parse_qs(urlparse(self.path).query)
+        key = self.headers.get("X-Mamori-Key") or q.get("key", [None])[0] or q.get("k", [None])[0]
+        if key:
+            return lookup_key(key)
+        return lookup_token(self._cookie(MEMBER_COOKIE))
+
+    def _member_cookie(self, key: str) -> str:
+        return f"{MEMBER_COOKIE}={member_token(key)}; Path=/; Max-Age={MEMBER_TTL}; {COOKIE_FLAGS}"
+
+    def _invite(self, code: int, msg: str = ""):
+        path = urlparse(self.path).path
+        if path.startswith("/api/") and "text/html" not in (self.headers.get("Accept") or ""):
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Cache-Control", "no-store")
+            self._sec_headers()
+            self.end_headers()
+            self.wfile.write(json.dumps(INVITE_JSON, ensure_ascii=False).encode())
+            return
+        self.send_response(code)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Robots-Tag", "noindex, nofollow")
+        self._sec_headers()
+        self.end_headers()
+        self.wfile.write(render_invite(msg, _safe_next(path if path != "/enter" else "/")))
 
     def do_GET(self):
         path = urlparse(self.path).path
@@ -1297,6 +1420,20 @@ class Handler(BaseHTTPRequestHandler):
         if not path.startswith("/media/") and path != "/healthz" and \
                 not _rate_ok(f"get:{self.client_address[0]}", GET_LIMIT):
             return self._json(429, {"error": "rate limit exceeded"})
+        if INVITE_ONLY and path not in PUBLIC_PATHS:
+            if not self._member():
+                return self._invite(200 if path == "/" else 401)
+            q = parse_qs(urlparse(self.path).query, keep_blank_values=True)
+            k = q.pop("k", [None])[0]
+            if k and not self.headers.get("X-Mamori-Key"):
+                # ?k= のリンク: 短期クッキーに置き換え、キーをアドレス欄・履歴に残さない
+                from urllib.parse import urlencode
+                rest = urlencode([(a, v) for a, vs in q.items() for v in vs])
+                return self._redirect(path + ("?" + rest if rest else ""), self._member_cookie(k))
+        if path == "/enter":
+            return self._invite(200)
+        if path == "/robots.txt":
+            return self._send(200, b"User-agent: *\nDisallow: /\n", "text/plain; charset=utf-8")
         if path == "/":
             stats = _stats()
             html = LANDING.replace("__STATS_HTML__",
@@ -1306,7 +1443,7 @@ class Handler(BaseHTTPRequestHandler):
                 f'<div class="stat"><b style="font-size:1rem">{stats["last_update"] or "—"}</b><span>最終更新</span></div>')
             self._send(200, html.encode(), "text/html; charset=utf-8")
         elif path == "/healthz":
-            self._json(200, {"ok": True, "ts": time.time()})
+            self._json(200, {"ok": True, "ts": time.time(), "version": VERSION})
         elif path == "/api/latest":
             if LATEST_FILE.exists():
                 self._send(200, LATEST_FILE.read_bytes())
@@ -1315,7 +1452,7 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/stats":
             self._json(200, _stats())
         elif path == "/api/observations":
-            caller = self._caller()
+            caller = self._member()
             if not caller:
                 # No key: TLP:CLEAR observations are public (read-only).
                 visible = [o for o in _read_obs() if o.get("tlp") == "CLEAR"]
@@ -1469,6 +1606,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self._html(400, render_account_login("メールアドレスの形を確認してください"))
             if not (_rate_ok(f"login-ip:{ip}", 10) and _rate_ok(f"login-mail:{email}", 3)):
                 return self._html(429, render_account_login("送信が続いています。1時間ほどおいてからお試しください"))
+            if INVITE_ONLY and not STORE.account(email):
+                # 招待制: 新規登録は受け付けない。登録の有無が分からないよう同じ画面を返す
+                return self._html(200, render_account_sent(email))
             token = STORE.create_login(email)
             link = f"{PUBLIC_URL}/account/verify?t={token}"
             sent = accounts.send_mail(email, "【守 Mamori】ログイン用のリンク",
@@ -1507,6 +1647,18 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
+        if path == "/enter":
+            if not _rate_ok(f"enter:{self.client_address[0]}", 20):
+                return self._json(429, {"error": "rate limit exceeded"})
+            form = self._form()
+            key = (form.get("key") or "").strip()
+            if not lookup_key(key):
+                return self._send(401, render_invite("キーを確認できませんでした。お渡ししたキーをもう一度入れてください",
+                                                     _safe_next(form.get("next", "/"))), "text/html; charset=utf-8")
+            return self._redirect(_safe_next(form.get("next", "/")), self._member_cookie(key))
+        if INVITE_ONLY and path.startswith("/newsletter/"):
+            # 招待制のあいだは新規購読を受け付けない（配信停止は GET /newsletter/unsub で常に可能）
+            return self._invite(403)
         if path.startswith("/newsletter/"):
             if not _rate_ok(f"nl:{self.client_address[0]}", 60):
                 return self._json(429, {"error": "rate limit exceeded"})
@@ -1522,6 +1674,8 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/my":
             form = self._form()
             key = form.get("key", "")
+            if INVITE_ONLY and not lookup_key(key) and not self._member():
+                return self._invite(401)
             return self._html(200, render_my(lookup_key(key), key) if lookup_key(key)
                               else render_my(None, ""))
         if path == "/post":
@@ -1575,6 +1729,8 @@ class Handler(BaseHTTPRequestHandler):
             return
         key = form.get("key", "")
         caller = lookup_key(key)
+        if not caller and INVITE_ONLY and not self._member():
+            return self._invite(401)
         if not caller:
             return self._send(403, render_post(None, "", "キーが正しくありません", False),
                               "text/html; charset=utf-8")

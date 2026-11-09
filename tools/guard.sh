@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 守 Mamori Guard — macOS / Linux の守りを点検し、安全な項目を自動で直して、毎日の自動点検を登録する。
-#   curl -fsSL https://mamori.teai.io/kit.tar.gz | tar xz && sudo bash mamori/tools/guard.sh
+#   curl -fsSL -H "X-Mamori-Key: $(cat ~/.config/mamori/key)" https://mamori.teai.io/kit.tar.gz | tar xz && sudo bash mamori/tools/guard.sh
 #   点検だけ: bash mamori/tools/guard.sh --scan-only
 #   止める:   sudo python3 "<保存先>/mamori_guard.py" uninstall   戻す: ... rollback
 set -euo pipefail

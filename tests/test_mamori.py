@@ -179,6 +179,7 @@ def test_hub() -> None:
                    MAMORI_KEYS_JSON='{"k-amber":{"org":"org-a","tlp_max":"AMBER"},'
                                     '"k-clear":{"org":"org-b","tlp_max":"CLEAR"}}',
                    MAMORI_NO_REFRESH="1",  # ネットワーク取得を無効化して決定的に
+                   MAMORI_INVITE_ONLY="0",  # 画面・APIの中身の試験（招待制の門は tests/test_invite.py）
                    PORT="18099")
         proc = subprocess.Popen([sys.executable, str(ROOT / "hub" / "server.py")],
                                 env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

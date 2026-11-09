@@ -98,8 +98,11 @@ class System:
         except FileNotFoundError:
             pass
 
-    def fetch_json(self, url: str, timeout: int = 20):
-        req = urllib.request.Request(url, headers={"User-Agent": f"mamori-guard/{VERSION}"})
+    def fetch_json(self, url: str, timeout: int = 20, key: str = ""):
+        headers = {"User-Agent": f"mamori-guard/{VERSION}"}
+        if key:
+            headers["X-Mamori-Key"] = key  # 招待制（2026-11-10〜）: ハブの情報は参加者キーが必要
+        req = urllib.request.Request(url, headers=headers)
         with urllib.request.urlopen(req, timeout=timeout) as r:  # noqa: S310 - 固定のhttpsハブ
             return json.loads(r.read().decode("utf-8"))
 
@@ -688,10 +691,30 @@ def intel_findings(s: System, sw_hits: list[dict], os_hits: list[dict]) -> list[
     return f
 
 
+def hub_key(sd: Path | None = None) -> str:
+    """参加者キーを探す（値は表示もログもしない）。
+    MAMORI_KEY → 状態フォルダの key（管理者常駐用）→ /etc/mamori/key → ~/.config/mamori/key の順。"""
+    if os.environ.get("MAMORI_KEY"):
+        return os.environ["MAMORI_KEY"].strip()
+    cands = ([sd / "key"] if sd else []) + [Path("/etc/mamori/key"), Path.home() / ".config" / "mamori" / "key"]
+    sudo_user = os.environ.get("SUDO_USER")
+    if sudo_user and sudo_user != "root":
+        base = Path("/Users" if sys.platform == "darwin" else "/home") / sudo_user
+        cands.append(base / ".config" / "mamori" / "key")
+    for f in cands:
+        try:
+            k = f.read_text(encoding="utf-8").strip().splitlines()[0].strip()
+            if k:
+                return k
+        except Exception:  # noqa: BLE001
+            continue
+    return ""
+
+
 def load_intel(s: System, sd: Path) -> tuple[list[dict], str]:
     cache = sd / "intel-cache.json"
     try:
-        data = s.fetch_json(HUB + "/api/latest")
+        data = s.fetch_json(HUB + "/api/latest", key=hub_key(sd))
         objs = [o for o in data.get("objects", []) if o.get("type") == "advisory"]
         try:
             sd.mkdir(parents=True, exist_ok=True)
@@ -1036,6 +1059,15 @@ def install(s: System, sd: Path, hour: int, level: str) -> str:
     sd.mkdir(parents=True, exist_ok=True)
     me = sd / "mamori_guard.py"
     shutil.copyfile(__file__, me)
+    # 常駐（管理者だと HOME が変わる）でもハブに入れるよう、参加者キーを状態フォルダへ本人だけ読める形で写す
+    k = hub_key(sd)
+    if k and not (sd / "key").exists():
+        try:
+            fd = os.open(str(sd / "key"), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                fh.write(k + "\n")
+        except Exception:  # noqa: BLE001
+            pass
     py = sys.executable or "python3"
     # Homebrew の版つきパスは更新で消えるので、macOS では OS 付属の python3 を優先
     if s.os == "darwin" and Path("/usr/bin/python3").exists() and s.run(["xcode-select", "-p"], 10)[0] == 0:

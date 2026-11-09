@@ -50,7 +50,7 @@ class Fake(g.System):
     def remove(self, path):
         self.files.pop(path, None)
 
-    def fetch_json(self, url, timeout=20):
+    def fetch_json(self, url, timeout=20, key=""):
         raise OSError("offline")
 
 

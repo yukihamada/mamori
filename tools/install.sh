@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # 守 Mamori — AIエージェントへのかんたん導入（Claude Code / Codex / Sente）
 #
-#   curl -fsSL https://mamori.teai.io/install.sh | bash
-#   curl -fsSL https://mamori.teai.io/install.sh | MAMORI_KEY=mk_... bash     # 共有もするとき
-#   curl -fsSL https://mamori.teai.io/install.sh | bash -s -- --guard           # 毎日の自動保護も入れる
-#   curl -fsSL https://mamori.teai.io/install.sh | bash -s -- --uninstall       # 外す
+#   招待制（2026-11-10〜）。参加者キーが必要です（MAMORI_KEY か ~/.config/mamori/key）:
+#   export MAMORI_KEY=mk_...
+#   curl -fsSL -H "X-Mamori-Key: $MAMORI_KEY" https://mamori.teai.io/install.sh | bash
+#   ... | bash -s -- --guard           # 毎日の自動保護も入れる
+#   ... | bash -s -- --uninstall       # 外す
 #
 # やること:
 #   1. キット一式を ~/.mamori/kit に置く（標準ライブラリだけ・追加ソフト不要）
@@ -164,7 +165,21 @@ echo "守 Mamori を AI エージェントに入れます"
 # 1. キット
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
-curl -fsSL "$HUB/kit.tar.gz" -o "$TMP/kit.tgz"
+# 招待制（2026-11-10〜）: キットは参加者キーがある人だけ。キーはコマンド行に出さずファイル経由で渡す
+KIT_KEY="${MAMORI_KEY:-}"
+if [ -z "$KIT_KEY" ] && [ -f "$KEY_FILE" ]; then KIT_KEY="$(head -n1 "$KEY_FILE" | tr -d '[:space:]')"; fi
+if [ -z "$KIT_KEY" ]; then
+  echo "守（Mamori）は招待制です（2026-11-10〜）。利用を希望する方は https://teai.io/contact からご連絡ください。" >&2
+  echo "参加者の方は MAMORI_KEY=<お渡ししたキー> を付けて実行してください。" >&2
+  exit 1
+fi
+(umask 077; printf 'X-Mamori-Key: %s\n' "$KIT_KEY" > "$TMP/h")
+if ! curl -fsSL -H @"$TMP/h" "$HUB/kit.tar.gz" -o "$TMP/kit.tgz"; then
+  rm -f "$TMP/h"
+  echo "キットを取得できませんでした。キーが正しいか確認してください（招待制: https://teai.io/contact）" >&2
+  exit 1
+fi
+rm -f "$TMP/h"
 mkdir -p "$TMP/x" && tar xzf "$TMP/kit.tgz" -C "$TMP/x"
 [ -f "$TMP/x/mamori/mcp/mamori_mcp.py" ] || { echo "キットの中身が想定と違います" >&2; exit 1; }
 mkdir -p "$(dirname "$KIT_DIR")"
@@ -186,7 +201,7 @@ if [ -n "${MAMORI_KEY:-}" ]; then
 elif [ -f "$KEY_FILE" ]; then
   ok "キー: 保存済みのものを使います"
 else
-  skip "キー: なし（脅威情報を読むだけなら不要。共有するときは $HUB/account で発行）"
+  skip "キー: なし"
 fi
 
 # 3. AI ツールへ登録
@@ -241,7 +256,7 @@ if [ "$FOUND" = 1 ]; then
   「Mamori で共有されている攻撃の手口を見せて」（キーが必要）
   「この攻撃を Mamori に共有して: /wp-login.php への総当たり」（キーが必要）
   「Mamori で守りを固めて」（点検して、承認をもらってから直します）
-外すとき: curl -fsSL https://mamori.teai.io/install.sh | bash -s -- --uninstall
+外すとき: curl -fsSL -H "X-Mamori-Key: $MAMORI_KEY" https://mamori.teai.io/install.sh | bash -s -- --uninstall
 MSG
 else
   echo "Claude Code / Codex / Sente が見つかりませんでした。入れてから再実行するか、MCP 設定に次を登録してください:"
