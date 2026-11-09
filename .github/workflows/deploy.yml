@@ -29,6 +29,7 @@ jobs:
       - run: python3 tests/test_guard.py
       - run: python3 tests/test_attacks.py
       - run: python3 tests/test_install.py
+      - run: python3 tests/test_invite.py
 
   test-windows:
     runs-on: windows-latest
@@ -51,7 +52,15 @@ jobs:
         run: |
           for i in 1 2 3 4 5 6; do
             sleep 10
-            v=$(curl -fsS https://mamori.teai.io/api/stats | python3 -c 'import json,sys;print(json.load(sys.stdin).get("version"))') || true
-            [ "$v" = "0.5" ] && echo "live version $v" && exit 0
+            v=$(curl -fsS https://mamori.teai.io/healthz | python3 -c 'import json,sys;print(json.load(sys.stdin).get("version"))') || true
+            if [ "$v" = "0.5" ]; then
+              echo "live version $v"
+              # 招待制: キーなしではキットも脅威情報も出さない
+              for p in /kit.tar.gz /api/latest /start /intel; do
+                c=$(curl -s -o /dev/null -w '%{http_code}' "https://mamori.teai.io$p")
+                echo "$p -> $c"; [ "$c" = 401 ] || exit 1
+              done
+              exit 0
+            fi
           done
           echo "version check failed"; exit 1

@@ -102,7 +102,11 @@ class Store:
     def lookup(self, key: str) -> dict | None:
         if not key or not key.startswith("mk_"):
             return None
-        rec = self._read()["keys"].get(_h(key))
+        return self.lookup_hash(_h(key))
+
+    def lookup_hash(self, key_hash: str) -> dict | None:
+        """キーのハッシュから引く（ブラウザのクッキーはキー本体を持たないため）。"""
+        rec = self._read()["keys"].get(key_hash or "")
         if not rec or rec.get("revoked_at"):
             return None
         return {"org": rec["org"], "tlp_max": rec.get("tlp_max", "CLEAR"), "via": "account"}

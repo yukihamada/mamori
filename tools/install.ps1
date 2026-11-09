@@ -1,7 +1,7 @@
 # 守 Mamori — AIエージェントへのかんたん導入（Windows / PowerShell）
 #
-#   irm https://mamori.teai.io/install.ps1 | iex
-#   $env:MAMORI_KEY='mk_...'; irm https://mamori.teai.io/install.ps1 | iex      # 共有もするとき
+#   招待制（2026-11-10〜）。参加者キーが必要です:
+#   $env:MAMORI_KEY='mk_...'; irm -Headers @{'X-Mamori-Key'=$env:MAMORI_KEY} https://mamori.teai.io/install.ps1 | iex
 #   $env:MAMORI_UNINSTALL='1'; irm https://mamori.teai.io/install.ps1 | iex     # 外す
 #   $env:MAMORI_GUARD='1'; irm https://mamori.teai.io/install.ps1 | iex         # 毎日の自動保護も入れる
 #   $env:MAMORI_ONLY='claude,codex'                                              # 入れる先を絞る
@@ -113,7 +113,12 @@ os.replace(tmp, p)
   $tmp = Join-Path ([IO.Path]::GetTempPath()) ("mamori-" + [guid]::NewGuid().ToString("N"))
   New-Item -ItemType Directory -Path (Join-Path $tmp "x") -Force | Out-Null
   try {
-    Invoke-WebRequest -UseBasicParsing -Uri "$hub/kit.tar.gz" -OutFile (Join-Path $tmp "kit.tgz")
+    # 招待制（2026-11-10〜）: キットは参加者キーがある人だけ
+    $kitHeaders = @{}
+    $kitKey = if ($env:MAMORI_KEY) { $env:MAMORI_KEY } elseif (Test-Path $keyFile) { ([string](Get-Content $keyFile -TotalCount 1)).Trim() } else { "" }
+    if ($kitKey) { $kitHeaders["X-Mamori-Key"] = $kitKey }
+    try { Invoke-WebRequest -UseBasicParsing -Uri "$hub/kit.tar.gz" -Headers $kitHeaders -OutFile (Join-Path $tmp "kit.tgz") }
+    catch { throw "キットを取得できませんでした。守（Mamori）は招待制です（2026-11-10〜）: 参加者は `$env:MAMORI_KEY にキーを入れて実行、利用希望は https://teai.io/contact へ" }
     & tar -xzf (Join-Path $tmp "kit.tgz") -C (Join-Path $tmp "x")
     if (-not (Test-Path (Join-Path $tmp "x\mamori\mcp\mamori_mcp.py"))) { throw "キットの中身が想定と違います" }
     New-Item -ItemType Directory -Path (Split-Path $kitDir -Parent) -Force | Out-Null
@@ -140,7 +145,7 @@ os.replace(tmp, p)
   } elseif (Test-Path $keyFile) {
     & $ok "キー: 保存済みのものを使います"
   } else {
-    & $skip "キー: なし（脅威情報を読むだけなら不要。共有するときは $hub/account で発行）"
+    & $skip "キー: なし"
   }
 
   # 3. AI ツールへ登録

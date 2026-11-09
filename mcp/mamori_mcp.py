@@ -106,9 +106,11 @@ def _http(method: str, path: str, body: dict | None = None, use_key: bool = Fals
     req.add_header("User-Agent", "mamori-mcp/0.2.0")
     if data is not None:
         req.add_header("Content-Type", "application/json")
+    if KEY and not use_key:
+        req.add_header("X-Mamori-Key", KEY)  # 招待制（2026-11-10〜）: 読むだけでもキーが必要
     if use_key:
         if not KEY:
-            return 0, {"error": "キーが未設定です。https://mamori.teai.io/account で発行し、~/.config/mamori/key に保存するか環境変数 MAMORI_KEY で渡してください（公開の脅威情報はキー不要）"}
+            return 0, {"error": "キーが未設定です。お渡しした参加者キーを ~/.config/mamori/key に保存するか環境変数 MAMORI_KEY で渡してください（守は招待制です: https://teai.io/contact）"}
         req.add_header("X-Mamori-Key", KEY)
     try:
         with urllib.request.urlopen(req, timeout=30) as r:
@@ -209,7 +211,7 @@ def selftest() -> int:
         print(w)
         ok = ok and w.startswith("キーは有効")
     else:
-        print("キー: 未設定（読むだけなら不要。共有するときは https://mamori.teai.io/account で発行）")
+        print("キー: 未設定（守は招待制です。お渡しした参加者キーを ~/.config/mamori/key に保存してください）")
     print("OK" if ok else "NG")
     return 0 if ok else 1
 

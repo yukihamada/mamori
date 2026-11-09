@@ -2,12 +2,14 @@
 
 **みんなでレポートして、みんなで守る。**
 
+> **2026-11-10 から招待制になりました。** ハブ（mamori.teai.io）の脅威情報・キット・参加ガイド・導入スクリプトは、お渡しした参加者キーがある方だけが使えます。利用を希望する方は https://teai.io/contact からご連絡ください。
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-3fb950.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-58a6ff.svg)](https://www.python.org/)
 [![dependencies: none](https://img.shields.io/badge/dependencies-none-8b949e.svg)](#設計メモ)
 [![Live](https://img.shields.io/badge/live-mamori.teai.io-3fb950.svg)](https://mamori.teai.io/)
 
-> うちの製品、今狙われてる？ — 登録不要・30秒で確認。CISA KEV／JPCERT/CC の最新情報から、自社に関係ある脅威を先頭に集めます。
+> うちの製品、今狙われてる？ — 30秒で確認（参加者向け）。CISA KEV／JPCERT/CC の最新情報から、自社に関係ある脅威を先頭に集めます。
 
 朝、出社してまず `https://mamori.teai.io/` を開き、使っている製品にチェックを入れて「この条件で最新の脅威を見る」を押す。今週の要対応が5分で分かる——そんな使い方を想定しています。
 
@@ -18,13 +20,12 @@ Mamoriは、最新の攻撃情報・脆弱性情報を自動で集め、自分�
 | リンク | URL |
 |---|---|
 | ハブ（実際に使える） | https://mamori.teai.io/ |
-| Live Intel（認証不要・TLP:CLEAR） | https://mamori.teai.io/api/latest |
-| 公開カウンタ | https://mamori.teai.io/api/stats |
+| Live Intel（参加者キー） | https://mamori.teai.io/api/latest |
 | 参加ガイド | https://mamori.teai.io/start |
 | 照合キット | https://mamori.teai.io/kit.tar.gz |
 | 製品ページ | https://teai.io/mamori |
 
-**提供形態**: 現在はベータ・無料です（参加者キーの発行も無料）。共有する観測データは Fly.io（東京リージョン）に保存し、90日で自動削除します。
+**提供形態**: 招待制（2026-11-10〜）。共有する観測データは Fly.io（東京リージョン）に保存し、90日で自動削除します。
 
 ## 仕組み（一枚で）
 
@@ -47,7 +48,7 @@ Mamoriは、最新の攻撃情報・脆弱性情報を自動で集め、自分�
 
 ## 画面で見る
 
-### 1. 自社に関係ある脅威だけを、その場で絞り込む（登録不要）
+### 1. 自社に関係ある脅威だけを、その場で絞り込む
 使っている製品にチェックを入れて「この条件で最新の脅威を見る」を押すと、関係する脅威が先頭に並び、緑の枠で強調されます。選んだ製品名は `?products=...` としてURLに含まれ、一覧の並べ替えに使います（サーバーには保存しません）。
 
 ![自社に関係ある脅威チェック：製品を選ぶチェックボックスと「この条件で最新の脅威を見る」ボタン](docs/screenshots/threat-check.png)
@@ -64,7 +65,7 @@ CISA KEV・JPCERT/CC の情報を6時間ごとに取得し、出典タグ（実�
 ### 3. Mac アプリ「守」— この Mac を毎日採点
 メニューバーに常駐し、設定の穴を点検。安全で元に戻せる項目は自動で直し、締め出しのおそれがある項目は承認を待ちます。ターミナルは不要です。
 
-- **ダウンロード**: https://mamori.teai.io/MamoriBar.zip （展開して `MamoriBar.app` をアプリケーションフォルダへ）
+- **ダウンロード**（参加者キーが必要）: https://mamori.teai.io/MamoriBar.zip （展開して `MamoriBar.app` をアプリケーションフォルダへ）
 - 初回だけ、公証がないため「システム設定 → プライバシーとセキュリティ → このまま開く」が必要です
 - ソースは `app/`（MIT）。点検エンジンはアプリに同梱で、Python 3.9 以上があれば動きます
 
@@ -98,25 +99,25 @@ MISP・OpenCTI などの既存ツールとの違い（サーバ不要・ブラ�
 
 ### AI エージェントから使う（Claude Code / Codex / Sente・いちばん簡単）
 ```bash
-curl -fsSL https://mamori.teai.io/install.sh | bash                       # 読むだけ（鍵不要）
-curl -fsSL https://mamori.teai.io/install.sh | MAMORI_KEY=mk_... bash     # 共有もする
-curl -fsSL https://mamori.teai.io/install.sh | bash -s -- --guard         # 毎日の自動保護も（sudo 1回）
-curl -fsSL https://mamori.teai.io/install.sh | bash -s -- --uninstall     # 外す
+export MAMORI_KEY=mk_...   # お渡しした参加者キー（招待制）
+curl -fsSL -H "X-Mamori-Key: $MAMORI_KEY" https://mamori.teai.io/install.sh | bash
+curl -fsSL -H "X-Mamori-Key: $MAMORI_KEY" https://mamori.teai.io/install.sh | bash -s -- --guard      # 毎日の自動保護も（sudo 1回）
+curl -fsSL -H "X-Mamori-Key: $MAMORI_KEY" https://mamori.teai.io/install.sh | bash -s -- --uninstall  # 外す
 ```
 ```powershell
-irm https://mamori.teai.io/install.ps1 | iex                               # Windows（試験=tests/test_install_ps1.py・CI windows-latest）
+$env:MAMORI_KEY='mk_...'; irm -Headers @{'X-Mamori-Key'=$env:MAMORI_KEY} https://mamori.teai.io/install.ps1 | iex   # Windows（試験=tests/test_install_ps1.py・CI windows-latest）
 ```
 入っている AI ツールを見つけて MCP サーバー `mamori` を登録し、自己テストまで行う。鍵は `~/.config/mamori/key`（600）に保存し、AI の設定には書かない。
 読むだけのツールは読み取り専用の印つき（確認なしで動く）、`mamori_share` は送信なので毎回確認。試験＝`python3 tests/test_install.py`。
 
-### 脅威レポートを受け取るだけ（キー不要）
+### 脅威レポートを受け取る（参加者キー）
 ```bash
-curl -s https://mamori.teai.io/api/latest
+curl -s -H "X-Mamori-Key: $MAMORI_KEY" https://mamori.teai.io/api/latest
 ```
 
 ### 自分のスタックと照合する（ローカル）
 ```bash
-curl -sL https://mamori.teai.io/kit.tar.gz | tar xz && cd mamori
+curl -sL -H "X-Mamori-Key: $MAMORI_KEY" https://mamori.teai.io/kit.tar.gz | tar xz && cd mamori
 cp examples/inventory.example.json inventory.json   # 使っている製品を並べる
 MAMORI_INVENTORY=inventory.json bash run.sh          # data/reports/ に日次レポート
 ```
@@ -132,11 +133,11 @@ cron例（毎朝9時）:
 
 ```bash
 # macOS / Linux（端末・サーバー）
-curl -fsSL https://mamori.teai.io/kit.tar.gz | tar xz && sudo bash mamori/tools/guard.sh
+curl -fsSL -H "X-Mamori-Key: $MAMORI_KEY" https://mamori.teai.io/kit.tar.gz | tar xz && sudo bash mamori/tools/guard.sh
 ```
 ```powershell
 # Windows（管理者として開いた PowerShell）
-iwr https://mamori.teai.io/kit.tar.gz -OutFile $env:TEMP\mamori.tgz; tar xzf $env:TEMP\mamori.tgz -C $env:TEMP; & $env:TEMP\mamori\tools\guard.ps1
+iwr -Headers @{'X-Mamori-Key'=$env:MAMORI_KEY} https://mamori.teai.io/kit.tar.gz -OutFile $env:TEMP\mamori.tgz; tar xzf $env:TEMP\mamori.tgz -C $env:TEMP; & $env:TEMP\mamori\tools\guard.ps1
 ```
 
 | 区分 | 扱い | 例 |
@@ -167,17 +168,18 @@ MAMORI_KEYS_JSON='{"key-alpha-001":{"org":"your-org","tlp_max":"AMBER"}}' \
 
 | エンドポイント | 認証 | 説明 |
 |---|---|---|
-| `GET /` | 不要 | ランディングページ（ライブ統計つき） |
-| `GET /api/latest` | 不要 | 最新の脅威インテル（TLP:CLEAR） |
-| `GET /api/stats` | 不要 | 参加組織数・観測件数・最終更新のカウンタ |
+| `GET /healthz` | 不要 | 死活確認 |
+| `GET /` | 参加者キー（招待制） | ランディングページ（ライブ統計つき） |
+| `GET /api/latest` | 参加者キー（招待制） | 最新の脅威インテル（TLP:CLEAR） |
+| `GET /api/stats` | 参加者キー（招待制） | 参加組織数・観測件数・最終更新のカウンタ |
 | `POST /api/observations` | 参加者キー | 攻撃観測の投稿（TLP付・64KB上限・30回/時） |
-| `GET /api/observations` | 任意（キー無しは CLEAR のみ） | 自分のTLP権限までの観測一覧（直近200件） |
+| `GET /api/observations` | 参加者キー（招待制） | 自分のTLP権限までの観測一覧（直近200件） |
 | `GET /api/whoami` | 参加者キー | キーの有効性確認（組織ハッシュとTLP上限のみ返す） |
-| `GET /api/stix` | 不要 | STIX 2.1 バンドル |
-| `GET /api/sample-report` | 不要 | 最新の対策下書きレポート |
-| `GET /api/refresh-status` | 不要 | 自動取得の状態 |
-| `GET /start` | 不要 | 参加ガイド |
-| `GET /kit.tar.gz` | 不要 | 照合キット |
+| `GET /api/stix` | 参加者キー（招待制） | STIX 2.1 バンドル |
+| `GET /api/sample-report` | 参加者キー（招待制） | 最新の対策下書きレポート |
+| `GET /api/refresh-status` | 参加者キー（招待制） | 自動取得の状態 |
+| `GET /start` | 参加者キー（招待制） | 参加ガイド |
+| `GET /kit.tar.gz` | 参加者キー（招待制） | 照合キット |
 
 観測の投稿例：
 

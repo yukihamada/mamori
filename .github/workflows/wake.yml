@@ -12,9 +12,14 @@ jobs:
   wake:
     runs-on: ubuntu-latest
     steps:
-      - run: |
+      - env:
+          # 招待制（2026-11-10〜）: 状態はキーが必要。キーはファイル経由で渡しログに出さない
+          MAMORI_KEY: ${{ secrets.MAMORI_WAKE_KEY }}
+        run: |
           curl -fsS https://mamori.teai.io/healthz
           sleep 90
-          curl -fsS https://mamori.teai.io/api/refresh-status | tee status.json
+          umask 077; printf 'X-Mamori-Key: %s\n' "$MAMORI_KEY" > "$RUNNER_TEMP/h"
+          curl -fsS -H @"$RUNNER_TEMP/h" https://mamori.teai.io/api/refresh-status > status.json
+          rm -f "$RUNNER_TEMP/h"
           # 取得に失敗して情報が古いままならジョブを失敗にする
           python3 -c 'import json;s=json.load(open("status.json"));a=s["bundle_age_hours"];print("age",a);exit(0 if a < 7 else 1)'

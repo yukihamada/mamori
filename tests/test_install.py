@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -67,8 +68,13 @@ def main() -> int:
                 break
             except Exception:
                 time.sleep(0.2)
-        with urllib.request.urlopen(base + "/install.sh", timeout=5) as r:
-            check(r.status == 200 and b"mamori_mcp.py" in r.read(), "/install.sh を配信している")
+        with urllib.request.urlopen(urllib.request.Request(base + "/install.sh", headers={"X-Mamori-Key": "mk_test_ok"}), timeout=5) as r:
+            check(r.status == 200 and b"mamori_mcp.py" in r.read(), "/install.sh を参加者に配信している")
+        try:
+            urllib.request.urlopen(base + "/install.sh", timeout=5)
+            check(False, "/install.sh はキーなしでは配らない")
+        except urllib.error.HTTPError as e:
+            check(e.code == 401, "/install.sh はキーなしでは配らない（401）")
 
         home = tmp / "home"
         bindir = tmp / "bin"
@@ -109,7 +115,16 @@ def main() -> int:
         check((home / ".claude" / "skills" / "mamori" / "SKILL.md").exists(), "Claude Code にスキルを置く")
 
         bad = run_install({**env, "MAMORI_KEY": "mk_wrong"}, "--only", "codex")
-        check(bad.returncode == 0 and "保存せずに続けます" in bad.stdout, "無効なキーは保存しない")
+        check(bad.returncode != 0 and "招待制" in bad.stderr and "mk_wrong" not in bad.stdout + bad.stderr,
+              "招待制: 無効なキーではキットを取れず止まる（キーを表示しない）")
+        nohome = tmp / "nokey-home"
+        nohome.mkdir()
+        nk = {k: v for k, v in env.items() if k != "MAMORI_KEY"}
+        nok = run_install({**nk, "HOME": str(nohome)}, "--only", "codex")
+        check(nok.returncode != 0 and "teai.io/contact" in nok.stderr and not (nohome / ".mamori" / "kit").exists(),
+              "招待制: キーが無ければ案内を出して何も入れない")
+        saved = run_install(nk, "--only", "codex")
+        check(saved.returncode == 0, "招待制: 保存済みのキーでキットを更新できる")
         check(key.read_text().strip() == "mk_test_ok", "無効なキーで既存キーを上書きしない")
 
         # --guard: 偽の sudo（成功）→ 管理者として1回の昇格で fix --auto と install を実行

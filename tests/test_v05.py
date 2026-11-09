@@ -122,7 +122,7 @@ def test_hub() -> None:
         {"type": "attack-observation", "pattern": "old-clear-obs", "tlp": "CLEAR", "received_at": now - 91 * 86400},
     ]))
     port = free_port()
-    env = dict(os.environ, MAMORI_ORG_SALT="test-salt", MAMORI_DATA=str(tmp), MAMORI_APP=str(ROOT), PORT=str(port), MAMORI_NO_REFRESH="1",
+    env = dict(os.environ, MAMORI_ORG_SALT="test-salt", MAMORI_DATA=str(tmp), MAMORI_APP=str(ROOT), PORT=str(port), MAMORI_NO_REFRESH="1", MAMORI_INVITE_ONLY="0",
                MAMORI_KEYS_JSON=json.dumps({"k-green": {"org": "acme", "tlp_max": "GREEN"},
                                             "k-amber": {"org": "vetted", "tlp_max": "AMBER"}}))
     proc = subprocess.Popen([sys.executable, str(ROOT / "hub" / "server.py")], env=env,
@@ -238,7 +238,7 @@ def test_accounts() -> None:
     (tmp / "latest_bundle.json").write_text(json.dumps({"created": "2026-10-23T00:00:00+00:00", "objects": []}))
     port = free_port()
     env = dict(os.environ, MAMORI_ORG_SALT="test-salt", MAMORI_DATA=str(tmp), MAMORI_APP=str(ROOT), PORT=str(port),
-               MAMORI_NO_REFRESH="1", MAMORI_MAIL_OUTBOX=str(outbox), MAMORI_PUBLIC_URL=f"http://127.0.0.1:{port}",
+               MAMORI_NO_REFRESH="1", MAMORI_INVITE_ONLY="0", MAMORI_MAIL_OUTBOX=str(outbox), MAMORI_PUBLIC_URL=f"http://127.0.0.1:{port}",
                MAMORI_KEYS_JSON="{}")
     proc = subprocess.Popen([sys.executable, str(ROOT / "hub" / "server.py")], env=env,
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

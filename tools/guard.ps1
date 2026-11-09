@@ -1,6 +1,6 @@
 # 守 Mamori Guard — Windows の守りを点検し、安全な項目を自動で直して、毎日の自動点検を登録する。
 # 管理者として PowerShell を開き:
-#   iwr https://mamori.teai.io/kit.tar.gz -OutFile $env:TEMP\mamori.tgz; tar xzf $env:TEMP\mamori.tgz -C $env:TEMP; & $env:TEMP\mamori\tools\guard.ps1
+#   iwr -Headers @{'X-Mamori-Key'=$env:MAMORI_KEY} https://mamori.teai.io/kit.tar.gz -OutFile $env:TEMP\mamori.tgz; tar xzf $env:TEMP\mamori.tgz -C $env:TEMP; & $env:TEMP\mamori\tools\guard.ps1
 # 点検だけ: & ...\guard.ps1 -ScanOnly
 param([switch]$ScanOnly, [int]$Hour = 9)
 $ErrorActionPreference = "Stop"
