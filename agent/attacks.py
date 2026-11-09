@@ -53,6 +53,8 @@ DEFENSE_MAP = [
      "mac.os_updates", "サーバ側ソフトを最新に・不要なミドルウェアを止める"),
     (re.compile(r"A2B|App-to-Backend|APK|IPA|モバイル"),
      "ai.plaintext_keys", "アプリに鍵を埋め込まない・APIの権限を見直す"),
+    (re.compile(r"/proc/.*/environ|environ|環境変数|コード実行|code_exec|ホスト実行|sandbox escape|サンドボックス"),
+     "proc.env_exposure", "ホスト実行ツールを既定で無効化し、秘密をプロセス環境に置かない"),
 ]
 
 
