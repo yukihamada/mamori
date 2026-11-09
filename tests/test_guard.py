@@ -250,11 +250,9 @@ def test_ai_plaintext_keys_ok_when_absent():
     assert f["ai.plaintext_keys"]["status"] == "ok"
 
 
-def test_process_env_flags_secrets_without_leaking_values(monkeypatch):
+def test_process_env_flags_secrets_without_leaking_values():
     ant = "sk-ant-api03-" + "a" * 40
-    monkeypatch.setattr(g, "_scan_ps_environ",
-                        lambda s: {k: 1 for k in g._env_secret_kinds(f"ANTHROPIC_API_KEY={ant}")})
-    s = Fake("darwin", MAC_WEAK, admin=False)
+    s = Fake("darwin", [("ps eww", 0, f"  123 node server.js ANTHROPIC_API_KEY={ant}\n")], admin=False)
     s.env["HOME"] = "/Users/u"
     rep = g.scan(s, "client", "standard", Path(tempfile.mkdtemp()), with_intel=False)
     f = by_id(rep)["proc.env_exposure"]
@@ -264,9 +262,8 @@ def test_process_env_flags_secrets_without_leaking_values(monkeypatch):
     assert not f["fix"]  # 自動では触らない
 
 
-def test_process_env_ok_when_no_secret(monkeypatch):
-    monkeypatch.setattr(g, "_scan_ps_environ", lambda s: {})
-    s = Fake("darwin", MAC_WEAK, admin=False)
+def test_process_env_ok_when_no_secret():
+    s = Fake("darwin", [("ps eww", 0, "  123 node server.js PATH=/usr/bin\n")], admin=False)
     s.env["HOME"] = "/Users/u"
     f = by_id(g.scan(s, "client", "standard", Path(tempfile.mkdtemp()), with_intel=False))
     assert f["proc.env_exposure"]["status"] == "ok"
