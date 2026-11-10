@@ -630,6 +630,129 @@ def _norm(t: str) -> str:
     return " ".join(t.split())
 
 
+# --------------------------------------------------------------------------
+# 影響バージョン範囲（NVD CPE）で「修正済み」を除外する
+# --------------------------------------------------------------------------
+_NVD_CVE_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={}"
+_RANGES_CACHE: dict[str, list[dict]] = {}
+_VENDOR_CACHE: dict[str, str] = {}
+
+
+def _ver_tuple(v: str) -> tuple[int, ...] | None:
+    m = re.match(r"\s*v?(\d+(?:\.\d+)*)", str(v or ""))
+    if not m:
+        return None
+    return tuple(int(x) for x in m.group(1).split("."))
+
+
+def _vcmp(a: tuple[int, ...], b: tuple[int, ...]) -> int:
+    n = max(len(a), len(b))
+    a = a + (0,) * (n - len(a))
+    b = b + (0,) * (n - len(b))
+    return (a > b) - (a < b)
+
+
+def _cve_ranges(s: System, cve_id: str) -> list[dict]:
+    """NVD から CVE の影響範囲 [{vendor, product, start, end_inc, end_exc}] を取得（キャッシュ付き）。
+    取得できない場合は空リスト（= バージョン不明として名前一致を維持）。"""
+    if cve_id in _RANGES_CACHE:
+        return _RANGES_CACHE[cve_id]
+    out: list[dict] = []
+    if not cve_id.startswith("CVE-"):
+        _RANGES_CACHE[cve_id] = out
+        return out
+    try:
+        data = s.fetch_json(_NVD_CVE_URL.format(cve_id), timeout=8)
+        for v in data.get("vulnerabilities", []):
+            for c in v.get("cve", {}).get("configurations", []):
+                for n in c.get("nodes", []):
+                    for m in n.get("cpeMatch", []):
+                        parts = (m.get("criteria", "") or "").split(":")
+                        vendor = parts[3].lower() if len(parts) >= 5 else ""
+                        product = parts[4].lower() if len(parts) >= 5 else ""
+                        out.append({
+                            "vendor": vendor,
+                            "product": product,
+                            "start": _ver_tuple(m.get("versionStartIncluding")),
+                            "end_inc": _ver_tuple(m.get("versionEndIncluding")),
+                            "end_exc": _ver_tuple(m.get("versionEndExcluding")),
+                        })
+    except Exception:
+        out = []
+    _RANGES_CACHE[cve_id] = out
+    return out
+
+
+def _software_vendor(s: System, sw: dict) -> str:
+    """インストール済みソフトの上流ベンダー（Homebrew の homepage から推定）。不明なら空。"""
+    key = sw.get("manager", "") + ":" + sw.get("id", "")
+    if key in _VENDOR_CACHE:
+        return _VENDOR_CACHE[key]
+    vendor = ""
+    if sw.get("manager") == "brew" and s.which("brew"):
+        rc, out = _brew(s, ["info", "--json=v2", "--formula", sw["id"]])
+        if rc == 0:
+            try:
+                f = json.loads(out)["formulae"][0]
+                home = f.get("homepage", "") or ""
+                m = re.search(r"github\.com/([^/]+)/", home)
+                if m:
+                    vendor = m.group(1).lower()
+            except Exception:
+                pass
+    _VENDOR_CACHE[key] = vendor
+    return vendor
+
+
+def _product_matches(product: str, tokens: set[str]) -> bool:
+    if not product:
+        return False
+    for t in tokens:
+        if not t:
+            continue
+        if product == t or product.startswith(t + ".") or t.startswith(product + "."):
+            return True
+    return False
+
+
+def _affected_by_version(s: System, sw: dict, adv: dict) -> bool | None:
+    """True=影響版, False=修正済み, None=判定不能（名前一致を維持）。"""
+    ver = _ver_tuple(sw.get("version", ""))
+    if ver is None:
+        return None
+    cve = adv.get("id", "")
+    if not cve.startswith("CVE-"):
+        # JPCERT 等の注意喚起は本文に CVE を含むことがある（例: 「（CVE-2026-111497）」）
+        m = re.search(r"CVE-\d{4}-\d{4,}", (adv.get("title", "") + " " + adv.get("url", "")))
+        cve = m.group(0) if m else ""
+    ranges = _cve_ranges(s, cve)
+    if not ranges:
+        return None
+    tokens = {_norm(sw.get("name", "")), (sw.get("name", "") or "").lower().replace(" ", ".")}
+    tokens = {t for t in tokens if t}
+    matched = [r for r in ranges if _product_matches(r["product"], tokens)]
+    if not matched:
+        return None
+    # 同じ製品名で複数ベンダーの範囲がある場合は、実ソフトの上流ベンダーで絞る
+    vendors = {r["vendor"] for r in matched if r["vendor"]}
+    if len(vendors) > 1:
+        mine = _software_vendor(s, sw)
+        if mine:
+            narrowed = [r for r in matched if r["vendor"] == mine]
+            if narrowed:
+                matched = narrowed
+    for r in matched:
+        lo, hi_i, hi_e = r["start"], r["end_inc"], r["end_exc"]
+        if lo is not None and _vcmp(ver, lo) < 0:
+            continue
+        if hi_i is not None and _vcmp(ver, hi_i) > 0:
+            continue
+        if hi_e is not None and _vcmp(ver, hi_e) >= 0:
+            continue
+        return True
+    return False
+
+
 def match_intel(s: System, intel: list[dict], software: list[dict]) -> tuple[list[dict], list[dict]]:
     """(該当ソフトの一覧, OS自体に関わる情報) を返す。"""
     sw_hits: dict[str, dict] = {}
@@ -650,11 +773,15 @@ def match_intel(s: System, intel: list[dict], software: list[dict]) -> tuple[lis
             continue
         for n, sw in names:
             if re.search(r"(?<![a-z0-9])" + re.escape(n) + r"(?![a-z0-9])", prefix):
+                affected = _affected_by_version(s, sw, adv)
+                if affected is False:  # NVD の範囲で「修正済み」と確認できた
+                    continue
                 key = sw["manager"] + ":" + sw["id"]
                 hit = sw_hits.setdefault(key, {**sw, "advisories": []})
                 if adv["id"] not in [a["id"] for a in hit["advisories"]]:
                     hit["advisories"].append({"id": adv["id"], "title": title[:120],
-                                              "due": adv.get("due_date", ""), "url": adv.get("url", "")})
+                                              "due": adv.get("due_date", ""), "url": adv.get("url", ""),
+                                              "version_verified": affected is True})
     return list(sw_hits.values()), os_hits
 
 

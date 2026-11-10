@@ -333,6 +333,88 @@ def test_observed_attacks_missing_file_is_safe():
     assert "attack.observed" not in by_id(rep) and "attack.covered" not in by_id(rep)
 
 
+class FakeNVD(Fake):
+    """fetch_json で NVD の影響範囲を返す（ネットワーク不使用）。"""
+
+    def __init__(self, osname, answers, nvd, **kw):
+        super().__init__(osname, answers, **kw)
+        self.nvd = nvd
+
+    def fetch_json(self, url, timeout=20, key=""):
+        for cve, data in self.nvd.items():
+            if cve in url:
+                return data
+        raise OSError("offline")
+
+
+def _nvd(product, end_exc=None, start=None, vendor="vendor"):
+    return {"vulnerabilities": [{"cve": {"configurations": [{"nodes": [{"cpeMatch": [{
+        "criteria": f"cpe:2.3:a:{vendor}:{product}:*:*:*:*:*:*:*:*",
+        "versionStartIncluding": start, "versionEndExcluding": end_exc}]}]}]}}]}
+
+
+BROTLI_INTEL = [{"type": "advisory", "id": "CVE-2026-111497",
+                 "title": "Google Brotli: Unchecked Return Value", "severity": "exploited-in-the-wild"}]
+
+
+def _mac_brotli(version):
+    return [a for a in MAC_WEAK if a[0] != "softwareupdate -l"] + [
+        ("softwareupdate -l", 0, ""),
+        ("brew list --versions --formula", 0, f"brotli {version}\n"),
+    ]
+
+
+def test_intel_version_patched_is_not_flagged():
+    # brotli 1.2.1 は NVD の影響範囲（< 1.2.1）外なので誤検知しない
+    g._RANGES_CACHE.clear()
+    s = FakeNVD("darwin", _mac_brotli("1.2.1"),
+                {"CVE-2026-111497": _nvd("brotli", end_exc="1.2.1")}, tools={"brew"})
+    sw, _ = g.match_intel(s, BROTLI_INTEL, g.installed_software(s))
+    assert sw == [], sw
+
+
+def test_intel_version_affected_is_flagged():
+    # brotli 1.2.0 は影響範囲内なので検出し、修正版であることも記録する
+    g._RANGES_CACHE.clear()
+    s = FakeNVD("darwin", _mac_brotli("1.2.0"),
+                {"CVE-2026-111497": _nvd("brotli", end_exc="1.2.1")}, tools={"brew"})
+    sw, _ = g.match_intel(s, BROTLI_INTEL, g.installed_software(s))
+    assert [h["name"] for h in sw] == ["brotli"]
+    assert sw[0]["advisories"][0]["version_verified"] is True
+
+
+def test_intel_version_unknown_keeps_name_match():
+    # NVD を取得できない時は従来どおり名前一致で残す（取りこぼしより安全側）
+    g._RANGES_CACHE.clear()
+    s = FakeNVD("darwin", _mac_brotli("1.2.1"), {}, tools={"brew"})
+    sw, _ = g.match_intel(s, BROTLI_INTEL, g.installed_software(s))
+    assert [h["name"] for h in sw] == ["brotli"]
+    assert sw[0]["advisories"][0]["version_verified"] is False
+
+
+def test_intel_vendor_disambiguates_same_product_name():
+    # 同名 brotli でも、実ソフトの上流(google)と一致する範囲だけを見て誤検知しない
+    g._RANGES_CACHE.clear()
+    g._VENDOR_CACHE.clear()
+    nvd = {"vulnerabilities": [{"cve": {"configurations": [{"nodes": [{"cpeMatch": [
+        {"criteria": "cpe:2.3:a:google:brotli:*:*:*:*:*:*:*:*", "versionEndExcluding": "1.2.1"},
+        {"criteria": "cpe:2.3:a:andybalholm:brotli:*:*:*:*:*:*:*:*", "versionEndExcluding": "1.2.7"},
+    ]}]}]}}]}
+    answers = _mac_brotli("1.2.1") + [
+        ("brew info --json=v2", 0, json.dumps({"formulae": [{"homepage": "https://github.com/google/brotli"}]})),
+    ]
+    s = FakeNVD("darwin", answers, {"CVE-2026-111497": nvd}, tools={"brew"})
+    sw, _ = g.match_intel(s, BROTLI_INTEL, g.installed_software(s))
+    assert sw == [], sw
+
+
+def test_version_compare_helper():
+    assert g._ver_tuple("v1.2.10") == (1, 2, 10)
+    assert g._vcmp((1, 2, 10), (1, 2, 9)) == 1
+    assert g._vcmp((22, 23, 4), (22, 23, 4)) == 0
+    assert g._vcmp((22, 23), (22, 23, 1)) == -1
+
+
 
 if __name__ == "__main__":
     n = 0
